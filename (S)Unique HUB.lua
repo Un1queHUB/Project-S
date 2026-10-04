@@ -29,6 +29,929 @@ pcall(function()
     })
 end)
 
+
+-- ������������������ KEY SYSTEM INJECTION ������������������
+--[[
+    ╔════════════════════════════════════════════════════════════════╗
+    ║                 UNIVERSAL KEY SYSTEM & HWID LOCK               ║
+    ║           ระบบตรวจสอบคีย์ + ล็อค HWID + บันทึกจำคีย์อัตโนมัติ        ║
+    ║                                                                ║
+    ║   Features:                                                    ║
+    ║   1. รองรับ GitHub Raw URL และ GitHub REST API                 ║
+    ║   2. HWID Lock ป้องกันส่งต่อคีย์ (1 คีย์ใช้งานได้ 1 เครื่อง)          ║
+    ║   3. GitHub Auto-Commit ผูก HWID ขึ้น GitHub อัตโนมัติ           ║
+    ║   4. ระบบ Remember Key / Auto-Login เข้าอัตโนมัติเมื่อเคยใส่แล้ว    ║
+    ║   5. UI ทันสมัย เลื่อนย้ายหน้าต่างได้ (Draggable) + ปุ่ม Copy HWID ║
+    ║   6. รองรับ Executors ทุกค่าย (Delta, Fluxus, Codex, Solara ฯลฯ) ║
+    ╚════════════════════════════════════════════════════════════════╝
+--]]
+
+local KeySystem = {}
+KeySystem.__index = KeySystem
+
+-- ══════════════════════════════════════════════════════════════
+-- [ ⚙️ CONFIGURATION: ตั้งค่าระบบคีย์ที่นี่ ]
+-- ══════════════════════════════════════════════════════════════
+KeySystem.Config = {
+    -- ชื่อ Hub / สคริปต์ที่จะแสดงบนหัว UI
+    HubName = "Unique HUB",
+    Subtitle = "KEY SYSTEM • 1 KEY PER 1 DEVICE",
+
+    -- ลิงก์ไฟล์ keys.txt ดิบ (Raw) บน GitHub
+    KeysUrl = "https://raw.githubusercontent.com/Un1queHUB/Project-S/refs/heads/main/pskeys.txt",
+
+    -- ข้อมูล GitHub สำหรับระบบ Auto-Commit (ผูก HWID ขึ้น GitHub อัตโนมัติเมื่อมีคนใช้คีย์ใหม่)
+    GitHubOwner = "SilasTH2449",     -- ชื่อผู้ใช้ GitHub
+    GitHubRepo  = "Auto-Fishing",     -- ชื่อ Repository
+    GitHubPath  = "keys.txt",         -- พาธของไฟล์คีย์ใน Repo
+
+    --[[
+        [ วิธีสร้าง GitHub Token เพื่อให้ระบบล็อค HWID ขึ้น GitHub อัตโนมัติ ]
+        1. ไปที่ https://github.com/settings/tokens?type=beta (Fine-grained tokens)
+        2. กด "Generate new token" ตั้งชื่อ เช่น "KeySystemToken"
+        3. หัวข้อ Repository access: เลือก "Only select repositories" แล้วเลือก Repo คีย์ของคุณ
+        4. หัวข้อ Permissions -> Repository permissions -> Contents: เลือก "Read and write"
+        5. กด Generate แล้วนำ Token (เช่น github_pat_xxxx) มาวางในช่อง GitHubToken ด้านล่าง
+        * หากไม่ใส่ Token ("") แอดมินสามารถนำ HWID ของลูกค้าไปพิมพ์ใส่ใน keys.txt เองได้ (รูปแบบ KEY:HWID)
+    --]]
+    GitHubToken = "", -- ?? ��� Token �ͧ GitHub �������������Ѿഷ����ѵ��ѵ�
+
+    -- หากเป็น true: คีย์บน GitHub จะต้องมี :HWID เท่านั้นถึงจะเข้าได้ (ป้องกันคนเอาคีย์ว่างไปแชร์กัน)
+    -- หากเป็น false: อนุญาตให้คีย์ที่ยังไม่มี :HWID ถูกผูกกับเครื่องแรกที่นำไปใช้
+    StrictHwidOnly = true,
+
+    -- ชื่อไฟล์เซฟคีย์ในเครื่องของผู้ใช้ (แต่ละสคริปต์ควรตั้งชื่อไม่ให้ซ้ำกัน)
+    SaveFileName = "UniqueHub_SavedKey.json",
+
+    -- ลิงก์รับคีย์ หรือ ลิงก์ Discord (หากใส่ จะมีปุ่ม "🔑 รับคีย์" ขึ้นมา / หากไม่ต้องการให้ใส่เป็น "")
+    GetKeyUrl = "",
+
+    -- เปิดใช้งานระบบล็อกอินอัตโนมัติ (จำคีย์ไม่ต้องกรอกใหม่ทุกรอบ)
+    AutoLogin = true,
+}
+
+-- ══════════════════ SERVICES ══════════════════
+local Players          = game:GetService("Players")
+local TweenService     = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui          = game:GetService("CoreGui")
+local StarterGui       = game:GetService("StarterGui")
+local HttpService      = game:GetService("HttpService")
+
+local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    LocalPlayer = Players.LocalPlayer
+end
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+
+-- ══════════════════ GUI PARENT RESOLVER ══════════════════
+local function getSafeGuiParent()
+    local parent = nil
+    pcall(function()
+        if gethui then
+            parent = gethui()
+        elseif CoreGui then
+            parent = CoreGui
+        end
+    end)
+    if not parent then
+        parent = PlayerGui
+    end
+    return parent
+end
+
+-- ══════════════════ THEME / UI COLORS ══════════════════
+local Theme = {
+    BG          = Color3.fromRGB(18, 18, 22),
+    Header      = Color3.fromRGB(24, 24, 30),
+    Card        = Color3.fromRGB(26, 26, 33),
+    CardHover   = Color3.fromRGB(34, 34, 42),
+    Border      = Color3.fromRGB(48, 48, 58),
+    BorderLight = Color3.fromRGB(70, 70, 84),
+    Text        = Color3.fromRGB(245, 245, 248),
+    TextMuted   = Color3.fromRGB(150, 150, 162),
+    Green       = Color3.fromRGB(46, 204, 113),
+    GreenHover  = Color3.fromRGB(39, 174, 96),
+    Red         = Color3.fromRGB(231, 76, 60),
+    RedHover    = Color3.fromRGB(192, 57, 43),
+    Yellow      = Color3.fromRGB(241, 196, 15),
+    Accent      = Color3.fromRGB(230, 230, 235),
+    White       = Color3.fromRGB(255, 255, 255),
+}
+
+-- ══════════════════ UI BUILDER HELPERS ══════════════════
+local function Create(cls, props)
+    local o = Instance.new(cls)
+    for k, v in pairs(props or {}) do
+        if k ~= "Parent" then o[k] = v end
+    end
+    if props and props.Parent then o.Parent = props.Parent end
+    return o
+end
+
+local function RoundCorner(parent, radius)
+    return Create("UICorner", {CornerRadius = UDim.new(0, radius or 8), Parent = parent})
+end
+
+local function AddStroke(parent, color, thickness)
+    return Create("UIStroke", {
+        Color = color or Theme.Border,
+        Thickness = thickness or 1,
+        Parent = parent
+    })
+end
+
+-- ══════════════════ BASE64 ENGINE ══════════════════
+local b64chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+local b64lookup = {}
+for i = 1, #b64chars do
+    b64lookup[b64chars:sub(i, i)] = i - 1
+end
+
+local function base64Encode(str)
+    local bytes = {str:byte(1, #str)}
+    local result = {}
+    local pad = 3 - (#bytes % 3)
+    if pad == 3 then pad = 0 end
+    for i = 1, pad do
+        table.insert(bytes, 0)
+    end
+    for i = 1, #bytes, 3 do
+        local b1, b2, b3 = bytes[i], bytes[i+1], bytes[i+2]
+        local n = (b1 * 65536) + (b2 * 256) + b3
+        local c1 = math.floor(n / 262144) % 64 + 1
+        local c2 = math.floor(n / 4096) % 64 + 1
+        local c3 = math.floor(n / 64) % 64 + 1
+        local c4 = n % 64 + 1
+        table.insert(result, b64chars:sub(c1, c1))
+        table.insert(result, b64chars:sub(c2, c2))
+        table.insert(result, b64chars:sub(c3, c3))
+        table.insert(result, b64chars:sub(c4, c4))
+    end
+    local res = table.concat(result)
+    if pad > 0 then
+        res = res:sub(1, #res - pad) .. string.rep("=", pad)
+    end
+    return res
+end
+
+local function base64Decode(data)
+    data = string.gsub(data, "[^A-Za-z0-9+/=]", "")
+    local result = {}
+    local len = #data
+    local i = 1
+    while i <= len do
+        local c1 = b64lookup[data:sub(i, i)] or 0
+        local c2 = b64lookup[data:sub(i+1, i+1)] or 0
+        local c3 = b64lookup[data:sub(i+2, i+2)] or 0
+        local c4 = b64lookup[data:sub(i+3, i+3)] or 0
+
+        local pad = 0
+        if data:sub(i+2, i+2) == "=" then pad = 2
+        elseif data:sub(i+3, i+3) == "=" then pad = 1 end
+
+        local n = (c1 * 262144) + (c2 * 4096) + (c3 * 64) + c4
+        local b1 = math.floor(n / 65536) % 256
+        local b2 = math.floor(n / 256) % 256
+        local b3 = n % 256
+
+        table.insert(result, string.char(b1))
+        if pad < 2 then table.insert(result, string.char(b2)) end
+        if pad < 1 then table.insert(result, string.char(b3)) end
+
+        i = i + 4
+    end
+    return table.concat(result)
+end
+
+-- ══════════════════ HWID & EXECUTOR HELPERS ══════════════════
+function KeySystem.GetHWID()
+    local hwid = nil
+    if gethwid then
+        pcall(function() hwid = gethwid() end)
+    elseif get_hwid then
+        pcall(function() hwid = get_hwid() end)
+    end
+    if not hwid or hwid == "" then
+        pcall(function()
+            hwid = game:GetService("RbxAnalyticsService"):GetClientId()
+        end)
+    end
+    if not hwid or hwid == "" then
+        pcall(function()
+            hwid = tostring(LocalPlayer.UserId)
+        end)
+    end
+    return tostring(hwid or "UNKNOWN-HWID")
+end
+
+local function fetchUrl(url)
+    local result = nil
+    local success = pcall(function()
+        result = game:HttpGet(url)
+    end)
+    if success and result and result ~= "" then
+        return result
+    end
+
+    local req = (syn and syn.request) or request or http_request or (http and http.request)
+    if req then
+        local s, r = pcall(function()
+            return req({Url = url, Method = "GET"})
+        end)
+        if s and r and r.Body and r.Body ~= "" then
+            return r.Body
+        end
+    end
+    return nil
+end
+
+local function copyToClipboard(text)
+    if setclipboard then
+        pcall(setclipboard, text)
+    elseif toclipboard then
+        pcall(toclipboard, text)
+    elseif Clipboard and Clipboard.set then
+        pcall(Clipboard.set, text)
+    end
+end
+
+-- ══════════════════ LOCAL SAVE / CACHE ══════════════════
+local function saveKeyLocal(fileName, key, hwid)
+    if writefile then
+        pcall(function()
+            writefile(fileName, HttpService:JSONEncode({
+                key = key,
+                hwid = hwid,
+                savedAt = os.time()
+            }))
+        end)
+    end
+end
+
+local function readKeyLocal(fileName)
+    if isfile and readfile then
+        local ok, res = pcall(function()
+            if isfile(fileName) then
+                return HttpService:JSONDecode(readfile(fileName))
+            end
+        end)
+        if ok and res and typeof(res) == "table" then
+            return res
+        end
+    end
+    return nil
+end
+
+function KeySystem.DeleteKeyLocal(fileName)
+    fileName = fileName or KeySystem.Config.SaveFileName
+    if delfile and isfile then
+        pcall(function()
+            if isfile(fileName) then
+                delfile(fileName)
+            end
+        end)
+    elseif writefile then
+        pcall(function()
+            writefile(fileName, "")
+        end)
+    end
+end
+
+-- เมธอด Logout เรียกใช้ได้จากสคริปต์หลักเพื่อลบเซฟและเปลี่ยนคีย์
+function KeySystem.Logout(cfg)
+    cfg = cfg or KeySystem.Config
+    KeySystem.DeleteKeyLocal(cfg.SaveFileName)
+end
+
+-- ══════════════════ ONLINE VERIFICATION & HWID BINDING ══════════════════
+function KeySystem.VerifyOnline(inputKey, cfg)
+    cfg = cfg or KeySystem.Config
+    inputKey = string.gsub(inputKey or "", "^%s*(.-)%s*$", "%1")
+    if inputKey == "" then
+        return false, "กรุณากรอกคีย์ก่อนกดยืนยัน"
+    end
+
+    local myHwid = KeySystem.GetHWID()
+    local fileContent = ""
+    local fileSha = nil
+
+    local hasToken = (typeof(cfg.GitHubToken) == "string" and cfg.GitHubToken ~= "")
+    local req = (syn and syn.request) or request or http_request or (http and http.request)
+
+    -- 1. ตรวจสอบผ่าน GitHub REST API หากมี Token (เพื่อเตรียม SHA สำหรับเขียนทับ)
+    if hasToken and req and cfg.GitHubOwner and cfg.GitHubRepo and cfg.GitHubPath then
+        local apiUrl = string.format("https://api.github.com/repos/%s/%s/contents/%s", cfg.GitHubOwner, cfg.GitHubRepo, cfg.GitHubPath)
+        local ok, resp = pcall(function()
+            return req({
+                Url = apiUrl,
+                Method = "GET",
+                Headers = {
+                    ["Authorization"] = "Bearer " .. cfg.GitHubToken,
+                    ["Accept"] = "application/vnd.github.v3+json",
+                    ["User-Agent"] = "Universal-KeySystem"
+                }
+            })
+        end)
+        if ok and resp and resp.Body then
+            local jsonOk, data = pcall(function() return HttpService:JSONDecode(resp.Body) end)
+            if jsonOk and data and data.sha and data.content then
+                fileSha = data.sha
+                fileContent = base64Decode(data.content)
+            end
+        end
+    end
+
+    -- 2. หากไม่มี Token หรือ REST API ดึงไม่สำเร็จ ให้ดึงผ่าน Raw URL โดยตรง
+    if fileContent == "" and cfg.KeysUrl and cfg.KeysUrl ~= "" then
+        local rawUrl = cfg.KeysUrl .. "?t=" .. tostring(os.time())
+        fileContent = fetchUrl(rawUrl) or fetchUrl(cfg.KeysUrl) or ""
+    end
+
+    if fileContent == "" then
+        return false, "ไม่สามารถเชื่อมต่อระบบคีย์ได้ กรุณาตรวจสอบอินเทอร์เน็ต"
+    end
+
+    -- 3. แยกบรรทัดและประมวลผลคีย์
+    local lines = {}
+    local keyFound = false
+    local keyNeedsBind = false
+    local targetLineIndex = -1
+
+    for line in string.gmatch(fileContent, "[^\r\n]+") do
+        table.insert(lines, line)
+    end
+
+    for idx, line in ipairs(lines) do
+        local trimmed = string.gsub(line, "^%s*(.-)%s*$", "%1")
+        if trimmed ~= "" and not string.find(trimmed, "^#") and not string.find(trimmed, "^%-%-") then
+            local colonIdx = string.find(trimmed, ":")
+            if colonIdx then
+                -- คีย์ถูกผูก HWID ไว้แล้ว (KEY:HWID)
+                local k = string.gsub(string.sub(trimmed, 1, colonIdx - 1), "^%s*(.-)%s*$", "%1")
+                local h = string.gsub(string.sub(trimmed, colonIdx + 1), "^%s*(.-)%s*$", "%1")
+                if k == inputKey then
+                    keyFound = true
+                    if h == myHwid then
+                        -- HWID ตรงกับเครื่องนี้ 100%
+                        saveKeyLocal(cfg.SaveFileName, inputKey, myHwid)
+                        return true, "คีย์ถูกต้อง! ยินดีต้อนรับเข้าสู่ระบบ"
+                    else
+                        -- มีเครื่องอื่นผูกคีย์นี้ไปแล้ว
+                        return false, "คีย์นี้ถูกใช้งานและล็อคกับเครื่องอื่นไปแล้ว! (HWID Locked)"
+                    end
+                end
+            else
+                -- คีย์ยังไม่ได้ผูก HWID (คีย์ว่าง)
+                if trimmed == inputKey then
+                    keyFound = true
+                    keyNeedsBind = true
+                    targetLineIndex = idx
+                end
+            end
+        end
+    end
+
+    if not keyFound then
+        return false, "คีย์ไม่ถูกต้อง หรือไม่มีอยู่ในระบบ"
+    end
+
+    -- 4. จัดการคีย์ที่ยังไม่ได้ผูก HWID
+    if keyNeedsBind then
+        if cfg.StrictHwidOnly and not hasToken then
+            return false, "คีย์นี้ยังไม่ได้รับการผูกกับเครื่องของคุณ กรุณาส่ง HWID ให้แอดมินเปิดใช้งาน"
+        end
+
+        -- กรณีมี GitHub Token: Commit ผูก HWID ขึ้น GitHub ทันที!
+        if hasToken and fileSha and req and cfg.GitHubOwner and cfg.GitHubRepo and cfg.GitHubPath then
+            lines[targetLineIndex] = inputKey .. ":" .. myHwid
+            local newContent = table.concat(lines, "\n")
+            local newBase64 = base64Encode(newContent)
+
+            local putUrl = string.format("https://api.github.com/repos/%s/%s/contents/%s", cfg.GitHubOwner, cfg.GitHubRepo, cfg.GitHubPath)
+            local putOk, putResp = pcall(function()
+                return req({
+                    Url = putUrl,
+                    Method = "PUT",
+                    Headers = {
+                        ["Authorization"] = "Bearer " .. cfg.GitHubToken,
+                        ["Accept"] = "application/vnd.github.v3+json",
+                        ["User-Agent"] = "Universal-KeySystem",
+                        ["Content-Type"] = "application/json"
+                    },
+                    Body = HttpService:JSONEncode({
+                        message = "Lock key " .. inputKey .. " to HWID " .. myHwid,
+                        content = newBase64,
+                        sha = fileSha
+                    })
+                })
+            end)
+
+            if putOk and putResp and (putResp.StatusCode == 200 or putResp.StatusCode == 201) then
+                saveKeyLocal(cfg.SaveFileName, inputKey, myHwid)
+                return true, "คีย์ถูกต้อง! และได้บันทึกล็อคเครื่องขึ้น GitHub เรียบร้อยแล้ว"
+            else
+                warn("[KeySystem] เกิดข้อผิดพลาดในการ Auto-Commit ขึ้น GitHub:", putResp and putResp.Body)
+            end
+        end
+
+        -- บันทึกลงในเครื่อง
+        saveKeyLocal(cfg.SaveFileName, inputKey, myHwid)
+        return true, "คีย์ถูกต้อง! ยินดีต้อนรับเข้าสู่ระบบ"
+    end
+
+    return false, "เกิดข้อผิดพลาดในการตรวจสอบคีย์"
+end
+
+-- ══════════════════ KEY SYSTEM UI ══════════════════
+function KeySystem.OpenUI(cfg, onSuccessCallback)
+    cfg = cfg or KeySystem.Config
+
+    local GuiParent = getSafeGuiParent()
+
+    -- ปิด UI เก่าทิ้งก่อนเปิดใหม่
+    local guiName = (cfg.HubName or "App") .. "_KeyGUI"
+    pcall(function()
+        local old = GuiParent:FindFirstChild(guiName)
+        if old then old:Destroy() end
+    end)
+
+    local KeyScreen = Create("ScreenGui", {
+        Name = guiName,
+        ResetOnSpawn = false,
+        DisplayOrder = 2000,
+        Parent = GuiParent,
+    })
+
+    local KeyWindow = Create("Frame", {
+        Name = "KeyWindow",
+        Size = UDim2.new(0, 380, 0, 440),
+        Position = UDim2.new(0.5, -190, 0.5, -220),
+        BackgroundColor3 = Theme.BG,
+        BorderSizePixel = 0,
+        ClipsDescendants = true,
+        Parent = KeyScreen,
+    })
+    RoundCorner(KeyWindow, 12)
+    AddStroke(KeyWindow, Theme.Border, 1)
+
+    -- Header
+    local KeyHeader = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 48),
+        BackgroundColor3 = Theme.Header,
+        BorderSizePixel = 0,
+        Parent = KeyWindow,
+    })
+    RoundCorner(KeyHeader, 12)
+    Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 12),
+        Position = UDim2.new(0, 0, 1, -12),
+        BackgroundColor3 = Theme.Header,
+        BorderSizePixel = 0,
+        Parent = KeyHeader,
+    })
+
+    local KeyDot = Create("Frame", {
+        Size = UDim2.new(0, 10, 0, 10),
+        Position = UDim2.new(0, 14, 0.5, -5),
+        BackgroundColor3 = Theme.Yellow,
+        BorderSizePixel = 0,
+        Parent = KeyHeader,
+    })
+    RoundCorner(KeyDot, 5)
+
+    Create("TextLabel", {
+        Text = cfg.HubName or "Key System",
+        Font = Enum.Font.GothamBold,
+        TextSize = 15,
+        TextColor3 = Theme.White,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 32, 0, 6),
+        Size = UDim2.new(0, 200, 0, 20),
+        Parent = KeyHeader,
+    })
+
+    Create("TextLabel", {
+        Text = cfg.Subtitle or "KEY SYSTEM • 1 KEY PER 1 DEVICE",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = Theme.TextMuted,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 32, 0, 26),
+        Size = UDim2.new(0, 250, 0, 16),
+        Parent = KeyHeader,
+    })
+
+    local KeyCloseBtn = Create("TextButton", {
+        Text = "✕",
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = Theme.TextMuted,
+        BackgroundColor3 = Color3.fromRGB(34, 34, 42),
+        Size = UDim2.new(0, 28, 0, 28),
+        Position = UDim2.new(1, -34, 0.5, -14),
+        AutoButtonColor = false,
+        Parent = KeyHeader,
+    })
+    RoundCorner(KeyCloseBtn, 6)
+    KeyCloseBtn.MouseButton1Click:Connect(function()
+        KeyScreen:Destroy()
+    end)
+
+    -- Body Container
+    local KeyBody = Create("Frame", {
+        Size = UDim2.new(1, -28, 1, -62),
+        Position = UDim2.new(0, 14, 0, 56),
+        BackgroundTransparency = 1,
+        Parent = KeyWindow,
+    })
+
+    Create("TextLabel", {
+        Text = "🔐  ระบบยืนยันตัวตน (Key System)",
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextColor3 = Theme.White,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 4),
+        Size = UDim2.new(1, 0, 0, 20),
+        Parent = KeyBody,
+    })
+
+    Create("TextLabel", {
+        Text = "คีย์จะถูกล็อคติดเครื่อง 1 คีย์ใช้งานได้แค่เครื่องเดียว",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = Theme.TextMuted,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 24),
+        Size = UDim2.new(1, 0, 0, 16),
+        Parent = KeyBody,
+    })
+
+    -- กล่องใส่คีย์ (TextBox)
+    local KeyInputCard = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 44),
+        Position = UDim2.new(0, 0, 0, 48),
+        BackgroundColor3 = Theme.Card,
+        BorderSizePixel = 0,
+        Parent = KeyBody,
+    })
+    RoundCorner(KeyInputCard, 8)
+    AddStroke(KeyInputCard, Theme.Border, 1)
+
+    local KeyInput = Create("TextBox", {
+        PlaceholderText = "กรอกคีย์ของคุณที่นี่...",
+        PlaceholderColor3 = Theme.TextMuted,
+        Text = "",
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = Theme.White,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -20, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        ClearTextOnFocus = false,
+        Parent = KeyInputCard,
+    })
+
+    -- การ์ดแสดง HWID ของเครื่อง
+    local HwidCard = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 78),
+        Position = UDim2.new(0, 0, 0, 102),
+        BackgroundColor3 = Theme.Card,
+        BorderSizePixel = 0,
+        Parent = KeyBody,
+    })
+    RoundCorner(HwidCard, 8)
+    AddStroke(HwidCard, Theme.Border, 1)
+
+    Create("TextLabel", {
+        Text = "💻 รหัสเครื่องของคุณ (Hardware ID):",
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextColor3 = Theme.TextMuted,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 8),
+        Size = UDim2.new(1, -24, 0, 16),
+        Parent = HwidCard,
+    })
+
+    local myHwidStr = KeySystem.GetHWID()
+    local displayHwid = string.sub(myHwidStr, 1, 24) .. (string.len(myHwidStr) > 24 and "..." or "")
+
+    Create("TextLabel", {
+        Text = displayHwid,
+        Font = Enum.Font.Code,
+        TextSize = 11,
+        TextColor3 = Theme.Accent,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 26),
+        Size = UDim2.new(1, -120, 0, 18),
+        Parent = HwidCard,
+    })
+
+    local CopyHwidBtn = Create("TextButton", {
+        Text = "📋 คัดลอก HWID",
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextColor3 = Theme.White,
+        BackgroundColor3 = Theme.CardHover,
+        Size = UDim2.new(0, 100, 0, 24),
+        Position = UDim2.new(1, -112, 0, 24),
+        AutoButtonColor = false,
+        Parent = HwidCard,
+    })
+    RoundCorner(CopyHwidBtn, 6)
+    CopyHwidBtn.MouseButton1Click:Connect(function()
+        copyToClipboard(myHwidStr)
+        CopyHwidBtn.Text = "✓ คัดลอกแล้ว!"
+        CopyHwidBtn.BackgroundColor3 = Theme.Green
+        task.delay(1.5, function()
+            CopyHwidBtn.Text = "📋 คัดลอก HWID"
+            CopyHwidBtn.BackgroundColor3 = Theme.CardHover
+        end)
+    end)
+
+    Create("TextLabel", {
+        Text = "หากคีย์ติดล็อคเครื่อง ให้ส่ง HWID นี้ให้แอดมินปลดล็อค",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = Color3.fromRGB(120, 120, 130),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 52),
+        Size = UDim2.new(1, -24, 0, 16),
+        Parent = HwidCard,
+    })
+
+    -- ข้อความผลการตรวจสอบ
+    local KeyStatusMsg = Create("TextLabel", {
+        Text = "พร้อมตรวจสอบคีย์",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = Theme.TextMuted,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 188),
+        Size = UDim2.new(1, 0, 0, 22),
+        Parent = KeyBody,
+    })
+
+    -- ปุ่มยืนยันคีย์ (SUBMIT KEY)
+    local SubmitBtn = Create("TextButton", {
+        Text = "✓  ยืนยันคีย์ (SUBMIT KEY)",
+        Font = Enum.Font.GothamBold,
+        TextSize = 13,
+        TextColor3 = Theme.White,
+        BackgroundColor3 = Theme.Green,
+        Size = UDim2.new(1, 0, 0, 42),
+        Position = UDim2.new(0, 0, 0, 218),
+        AutoButtonColor = false,
+        Parent = KeyBody,
+    })
+    RoundCorner(SubmitBtn, 8)
+
+    local isChecking = false
+    SubmitBtn.MouseButton1Click:Connect(function()
+        if isChecking then return end
+        local input = KeyInput.Text
+        if input == "" then
+            KeyStatusMsg.Text = "✗ กรุณากรอกคีย์ก่อนกดยืนยัน"
+            KeyStatusMsg.TextColor3 = Theme.Red
+            return
+        end
+
+        isChecking = true
+        SubmitBtn.Text = "⏳ กำลังตรวจสอบและล็อค HWID..."
+        SubmitBtn.BackgroundColor3 = Theme.CardHover
+        KeyStatusMsg.Text = "กำลังติดต่อระบบเพื่อยืนยัน..."
+        KeyStatusMsg.TextColor3 = Theme.Yellow
+        KeyDot.BackgroundColor3 = Theme.Yellow
+
+        task.spawn(function()
+            local success, msg = KeySystem.VerifyOnline(input, cfg)
+            isChecking = false
+
+            if success then
+                KeyStatusMsg.Text = "✓ " .. msg
+                KeyStatusMsg.TextColor3 = Theme.Green
+                KeyDot.BackgroundColor3 = Theme.Green
+                SubmitBtn.Text = "✓ สำเร็จ! กำลังเปิดโปรแกรม..."
+                SubmitBtn.BackgroundColor3 = Theme.Green
+
+                pcall(function()
+                    StarterGui:SetCore("SendNotification", {
+                        Title = cfg.HubName or "Key System",
+                        Text = "ยืนยันคีย์สำเร็จ! ยินดีต้อนรับ",
+                        Duration = 3
+                    })
+                end)
+
+                task.wait(0.8)
+                KeyScreen:Destroy()
+
+                if onSuccessCallback then
+                    task.spawn(onSuccessCallback)
+                end
+            else
+                KeyStatusMsg.Text = "✗ " .. msg
+                KeyStatusMsg.TextColor3 = Theme.Red
+                KeyDot.BackgroundColor3 = Theme.Red
+                SubmitBtn.Text = "✓  ยืนยันคีย์ (SUBMIT KEY)"
+                SubmitBtn.BackgroundColor3 = Theme.Green
+            end
+        end)
+    end)
+
+    -- ปุ่มวาง / ล้างข้อความ / รับคีย์
+    local PasteRow = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 28),
+        Position = UDim2.new(0, 0, 0, 270),
+        BackgroundTransparency = 1,
+        Parent = KeyBody,
+    })
+    local rowLayout = Create("UIListLayout", {
+        FillDirection = Enum.FillDirection.Horizontal,
+        Padding = UDim.new(0, 6),
+        Parent = PasteRow,
+    })
+
+    local hasGetKey = (typeof(cfg.GetKeyUrl) == "string" and cfg.GetKeyUrl ~= "")
+    local btnWidthScale = hasGetKey and 0.315 or 0.485
+
+    local PasteBtn = Create("TextButton", {
+        Text = "📋 วางคีย์",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = Theme.TextMuted,
+        BackgroundColor3 = Theme.Card,
+        Size = UDim2.new(btnWidthScale, 0, 1, 0),
+        AutoButtonColor = false,
+        Parent = PasteRow,
+    })
+    RoundCorner(PasteBtn, 6)
+
+    local ClearBtn = Create("TextButton", {
+        Text = "🗑 ล้าง",
+        Font = Enum.Font.Gotham,
+        TextSize = 11,
+        TextColor3 = Theme.TextMuted,
+        BackgroundColor3 = Theme.Card,
+        Size = UDim2.new(btnWidthScale, 0, 1, 0),
+        AutoButtonColor = false,
+        Parent = PasteRow,
+    })
+    RoundCorner(ClearBtn, 6)
+
+    PasteBtn.MouseButton1Click:Connect(function()
+        if getclipboard then
+            pcall(function() KeyInput.Text = getclipboard() end)
+        end
+    end)
+    ClearBtn.MouseButton1Click:Connect(function()
+        KeyInput.Text = ""
+    end)
+
+    if hasGetKey then
+        local GetKeyBtn = Create("TextButton", {
+            Text = "🔑 รับคีย์",
+            Font = Enum.Font.Gotham,
+            TextSize = 11,
+            TextColor3 = Theme.Yellow,
+            BackgroundColor3 = Theme.Card,
+            Size = UDim2.new(btnWidthScale, 0, 1, 0),
+            AutoButtonColor = false,
+            Parent = PasteRow,
+        })
+        RoundCorner(GetKeyBtn, 6)
+        GetKeyBtn.MouseButton1Click:Connect(function()
+            copyToClipboard(cfg.GetKeyUrl)
+            GetKeyBtn.Text = "✓ คัดลอกลิงก์แล้ว"
+            pcall(function()
+                StarterGui:SetCore("SendNotification", {
+                    Title = cfg.HubName or "Key System",
+                    Text = "คัดลอกลิงก์รับคีย์แล้ว นำไปวางในเบราว์เซอร์ได้เลย",
+                    Duration = 4
+                })
+            end)
+            task.delay(1.5, function()
+                GetKeyBtn.Text = "🔑 รับคีย์"
+            end)
+        end)
+    end
+
+    -- Footer
+    Create("TextLabel", {
+        Text = (cfg.HubName or "Unique HUB") .. " • GitHub Verified • HWID Locked",
+        Font = Enum.Font.Gotham,
+        TextSize = 10,
+        TextColor3 = Color3.fromRGB(100, 100, 110),
+        TextXAlignment = Enum.TextXAlignment.Center,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 312),
+        Size = UDim2.new(1, 0, 0, 16),
+        Parent = KeyBody,
+    })
+
+    -- ระบบลากหน้าต่าง (Draggable) รองรับทั้งเมาส์และมือถือ
+    local dragKey = false
+    local dragKeyInput, dragKeyStart, startKeyPos
+
+    KeyHeader.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragKey = true
+            dragKeyStart = input.Position
+            startKeyPos = KeyWindow.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragKey = false
+                end
+            end)
+        end
+    end)
+
+    KeyHeader.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragKeyInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragKeyInput and dragKey then
+            local delta = input.Position - dragKeyStart
+            KeyWindow.Position = UDim2.new(
+                startKeyPos.X.Scale, startKeyPos.X.Offset + delta.X,
+                startKeyPos.Y.Scale, startKeyPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
+-- ══════════════════ ฟังก์ชันเริ่มต้นทำงาน (START / INIT) ══════════════════
+--[[
+    วิธีใช้งาน:
+    KeySystem.Start(customConfig, function()
+        -- ใส่โค้ดหลักของคุณที่นี่ (จะทำงานหลังจากคีย์ผ่านแล้วเท่านั้น)
+    end)
+--]]
+function KeySystem.Start(customConfig, onSuccessCallback)
+    local cfg = {}
+    for k, v in pairs(KeySystem.Config) do cfg[k] = v end
+    if typeof(customConfig) == "table" then
+        for k, v in pairs(customConfig) do cfg[k] = v end
+    end
+
+    -- 1. ตรวจสอบคีย์ที่บันทึกไว้ในเครื่อง (Auto-Login)
+    if cfg.AutoLogin then
+        local saved = readKeyLocal(cfg.SaveFileName)
+        local myHwid = KeySystem.GetHWID()
+
+        if saved and saved.key and saved.hwid and saved.hwid == myHwid then
+            local ok, msg = KeySystem.VerifyOnline(saved.key, cfg)
+            if ok then
+                pcall(function()
+                    StarterGui:SetCore("SendNotification", {
+                        Title = cfg.HubName or "Key System",
+                        Text = "เข้าสู่ระบบอัตโนมัติสำเร็จ! ยินดีต้อนรับ",
+                        Duration = 3
+                    })
+                end)
+                if onSuccessCallback then
+                    task.spawn(onSuccessCallback)
+                end
+                return
+            end
+        end
+    end
+
+    -- 2. หากไม่มีคีย์เซฟ หรือคีย์เซฟไม่ถูกต้อง ให้เปิด UI ใส่คีย์
+    KeySystem.OpenUI(cfg, onSuccessCallback)
+end
+
+
+
+-- Config
+KeySystem.Config = {
+    HubName = "(S)Unique HUB",
+    Subtitle = "KEY SYSTEM � 1 KEY PER 1 DEVICE",
+    KeysUrl = "https://raw.githubusercontent.com/SilasTH2449/Auto-Fishing/refs/heads/main/keys.txt",
+    GitHubOwner = "SilasTH2449",
+    GitHubRepo  = "Auto-Fishing",
+    GitHubPath  = "keys.txt",
+    GitHubToken = "", -- ?? ��� Token �ͧ GitHub �������������Ѿഷ����ѵ��ѵ�
+    StrictHwidOnly = false,
+    SaveFileName = "UniqueHub_SavedKey.json",
+    GetKeyUrl = "",
+    AutoLogin = true,
+}
+
+KeySystem.Start(KeySystem.Config, function()
 local _initSuccess, _initErr = pcall(function()
 
 -- ป้องกันการรันซ้ำ ล้าง instance เก่าออกก่อน
@@ -2519,3 +3442,6 @@ if not _initSuccess then
         })
     end)
 end
+
+end)
+
