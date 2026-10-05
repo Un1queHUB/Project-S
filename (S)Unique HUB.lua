@@ -57,13 +57,13 @@ KeySystem.Config = {
     HubName = "Unique HUB",
     Subtitle = "KEY SYSTEM • 1 KEY PER 1 DEVICE",
 
-    -- ลิงก์ไฟล์ keys.txt ดิบ (Raw) บน GitHub
+    -- ลิงก์ไฟล์ pskeys.txt ดิบ (Raw) บน GitHub
     KeysUrl = "https://raw.githubusercontent.com/Un1queHUB/Project-S/refs/heads/main/pskeys.txt",
 
     -- ข้อมูล GitHub สำหรับระบบ Auto-Commit (ผูก HWID ขึ้น GitHub อัตโนมัติเมื่อมีคนใช้คีย์ใหม่)
-    GitHubOwner = "SilasTH2449",     -- ชื่อผู้ใช้ GitHub
-    GitHubRepo  = "Auto-Fishing",     -- ชื่อ Repository
-    GitHubPath  = "keys.txt",         -- พาธของไฟล์คีย์ใน Repo
+    GitHubOwner = "Un1queHUB",     -- ชื่อผู้ใช้ GitHub
+    GitHubRepo  = "Project-S",     -- ชื่อ Repository
+    GitHubPath  = "pskeys.txt",         -- พาธของไฟล์คีย์ใน Repo
 
     --[[
         [ วิธีสร้าง GitHub Token เพื่อให้ระบบล็อค HWID ขึ้น GitHub อัตโนมัติ ]
@@ -81,7 +81,7 @@ KeySystem.Config = {
     StrictHwidOnly = true,
 
     -- ชื่อไฟล์เซฟคีย์ในเครื่องของผู้ใช้ (แต่ละสคริปต์ควรตั้งชื่อไม่ให้ซ้ำกัน)
-    SaveFileName = "UniqueHub_SavedKey.json",
+    SaveFileName = "UniqueHubPS_SavedKey.json",
 
     -- ลิงก์รับคีย์ หรือ ลิงก์ Discord (หากใส่ จะมีปุ่ม "🔑 รับคีย์" ขึ้นมา / หากไม่ต้องการให้ใส่เป็น "")
     GetKeyUrl = "",
@@ -939,13 +939,13 @@ end
 -- Config
 KeySystem.Config = {
     HubName = "(S)Unique HUB",
-    Subtitle = "KEY SYSTEM � 1 KEY PER 1 DEVICE",
-    KeysUrl = "https://raw.githubusercontent.com/SilasTH2449/Auto-Fishing/refs/heads/main/keys.txt",
-    GitHubOwner = "SilasTH2449",
-    GitHubRepo  = "Auto-Fishing",
-    GitHubPath  = "keys.txt",
-    GitHubToken = "", -- ?? ��� Token �ͧ GitHub �������������Ѿഷ����ѵ��ѵ�
-    StrictHwidOnly = false,
+    Subtitle = "KEY SYSTEM * 1 KEY PER 1 DEVICE",
+    KeysUrl = "https://raw.githubusercontent.com/Un1queHUB/Project-S/refs/heads/main/pskeys.txt",
+    GitHubOwner = "Un1queHUB",
+    GitHubRepo  = "Project-S",
+    GitHubPath  = "pskeys.txt",
+    GitHubToken = "",
+    StrictHwidOnly = true,
     SaveFileName = "UniqueHub_SavedKey.json",
     GetKeyUrl = "",
     AutoLogin = true,
@@ -3444,4 +3444,5 @@ if not _initSuccess then
 end
 
 end)
+
 
