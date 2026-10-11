@@ -1,128 +1,75 @@
---[[
-    ╔════════════════════════════════════════════════════════════════╗
-    ║                       (S)Unique HUB                            ║
-    ║               Silas V1 Engine • WarZ / BloxZ Edition           ║
-    ║                  Premium Monochrome Dark Theme                 ║
-    ║                                                                ║
-    ║   Features:                                                    ║
-    ║   1. Custom Config Manager (ตั้งชื่อ, เลือก, บันทึก, โหลด)       ║
-    ║   2. Target Health HUD Real-time (หลอดเลือดเป้าหมายเรียลไทม์)   ║
-    ║   3. Dropped Item ESP + Filters (ESP ไอเทมตกพื้น + กรองประเภท)  ║
-    ║   4. FOV Circle Slider (ปรับขนาดวงเล็งแบบหลอดเลื่อน)           ║
-    ║   5. Movement: Speed Hack, Infinite Stamina, Noclip            ║
-    ║   6. Aimbot (Smooth Cam, Hard Lock, Mouse Delta, No Drop)      ║
-    ║   7. Hitbox Expander (ขยายหัว Head Hitbox)                     ║
-    ║   8. Player ESP, Box ESP, Tracers, Health Bar                  ║
-    ║   9. Combat: Auto Heal, Back Alert 20M, Instant Pickup         ║
-    ║   10. Loot WarZ: Item Magnet, Teleport Loot, Auto Aura         ║
-    ║   11. Keybind [X] ย่อ/ขยายหน้าต่าง UI                          ║
-    ╚════════════════════════════════════════════════════════════════╝
---]]
+-- ==============================================================================
+-- Warz By Unique HUB | Visuals (ESP), Combat & Items
+-- Integrated Key System & HWID Lock (GitHub Raw & Auto-Commit)
+-- ==============================================================================
 
--- แจ้งเตือนเริ่มต้นทันทีที่กดรัน (ให้ผู้ใช้ทราบว่าสคริปต์เริ่มทำงานแล้ว)
-print("[(S)Unique HUB] กำลังเริ่มต้นทำงาน...")
-pcall(function()
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "(S)Unique HUB",
-        Text = "กำลังโหลดระบบ... กรุณารอสักครู่",
-        Duration = 3
-    })
-end)
-
-
--- ������������������ KEY SYSTEM INJECTION ������������������
---[[
-    ╔════════════════════════════════════════════════════════════════╗
-    ║                 UNIVERSAL KEY SYSTEM & HWID LOCK               ║
-    ║           ระบบตรวจสอบคีย์ + ล็อค HWID + บันทึกจำคีย์อัตโนมัติ        ║
-    ║                                                                ║
-    ║   Features:                                                    ║
-    ║   1. รองรับ GitHub Raw URL และ GitHub REST API                 ║
-    ║   2. HWID Lock ป้องกันส่งต่อคีย์ (1 คีย์ใช้งานได้ 1 เครื่อง)          ║
-    ║   3. GitHub Auto-Commit ผูก HWID ขึ้น GitHub อัตโนมัติ           ║
-    ║   4. ระบบ Remember Key / Auto-Login เข้าอัตโนมัติเมื่อเคยใส่แล้ว    ║
-    ║   5. UI ทันสมัย เลื่อนย้ายหน้าต่างได้ (Draggable) + ปุ่ม Copy HWID ║
-    ║   6. รองรับ Executors ทุกค่าย (Delta, Fluxus, Codex, Solara ฯลฯ) ║
-    ╚════════════════════════════════════════════════════════════════╝
---]]
-
-local KeySystem = {}
-KeySystem.__index = KeySystem
-
--- ══════════════════════════════════════════════════════════════
--- [ ⚙️ CONFIGURATION: ตั้งค่าระบบคีย์ที่นี่ ]
--- ══════════════════════════════════════════════════════════════
-KeySystem.Config = {
-    -- ชื่อ Hub / สคริปต์ที่จะแสดงบนหัว UI
-    HubName = "Unique HUB",
-    Subtitle = "KEY SYSTEM • 1 KEY PER 1 DEVICE",
-
-    -- ลิงก์ไฟล์ pskeys.txt ดิบ (Raw) บน GitHub
-    KeysUrl = "https://raw.githubusercontent.com/Un1queHUB/Project-S/refs/heads/main/pskeys.txt",
-
-    -- ข้อมูล GitHub สำหรับระบบ Auto-Commit (ผูก HWID ขึ้น GitHub อัตโนมัติเมื่อมีคนใช้คีย์ใหม่)
-    GitHubOwner = "Un1queHUB",     -- ชื่อผู้ใช้ GitHub
-    GitHubRepo  = "Project-S",     -- ชื่อ Repository
-    GitHubPath  = "pskeys.txt",         -- พาธของไฟล์คีย์ใน Repo
-
-    --[[
-        [ วิธีสร้าง GitHub Token เพื่อให้ระบบล็อค HWID ขึ้น GitHub อัตโนมัติ ]
-        1. ไปที่ https://github.com/settings/tokens?type=beta (Fine-grained tokens)
-        2. กด "Generate new token" ตั้งชื่อ เช่น "KeySystemToken"
-        3. หัวข้อ Repository access: เลือก "Only select repositories" แล้วเลือก Repo คีย์ของคุณ
-        4. หัวข้อ Permissions -> Repository permissions -> Contents: เลือก "Read and write"
-        5. กด Generate แล้วนำ Token (เช่น github_pat_xxxx) มาวางในช่อง GitHubToken ด้านล่าง
-        * หากไม่ใส่ Token ("") แอดมินสามารถนำ HWID ของลูกค้าไปพิมพ์ใส่ใน keys.txt เองได้ (รูปแบบ KEY:HWID)
-    --]]
-    GitHubToken = "", -- ?? ��� Token �ͧ GitHub �������������Ѿഷ����ѵ��ѵ�
-
-    -- หากเป็น true: คีย์บน GitHub จะต้องมี :HWID เท่านั้นถึงจะเข้าได้ (ป้องกันคนเอาคีย์ว่างไปแชร์กัน)
-    -- หากเป็น false: อนุญาตให้คีย์ที่ยังไม่มี :HWID ถูกผูกกับเครื่องแรกที่นำไปใช้
-    StrictHwidOnly = true,
-
-    -- ชื่อไฟล์เซฟคีย์ในเครื่องของผู้ใช้ (แต่ละสคริปต์ควรตั้งชื่อไม่ให้ซ้ำกัน)
-    SaveFileName = "UniqueHubPS_SavedKey.json",
-
-    -- ลิงก์รับคีย์ หรือ ลิงก์ Discord (หากใส่ จะมีปุ่ม "🔑 รับคีย์" ขึ้นมา / หากไม่ต้องการให้ใส่เป็น "")
-    GetKeyUrl = "",
-
-    -- เปิดใช้งานระบบล็อกอินอัตโนมัติ (จำคีย์ไม่ต้องกรอกใหม่ทุกรอบ)
-    AutoLogin = true,
-}
-
--- ══════════════════ SERVICES ══════════════════
+-- ══════════════════ CORE SERVICES ══════════════════
 local Players          = game:GetService("Players")
-local TweenService     = game:GetService("TweenService")
+local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService     = game:GetService("TweenService")
 local CoreGui          = game:GetService("CoreGui")
 local StarterGui       = game:GetService("StarterGui")
 local HttpService      = game:GetService("HttpService")
 
 local LocalPlayer = Players.LocalPlayer
 if not LocalPlayer then
-    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
-    LocalPlayer = Players.LocalPlayer
-end
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
-
--- ══════════════════ GUI PARENT RESOLVER ══════════════════
-local function getSafeGuiParent()
-    local parent = nil
     pcall(function()
-        if gethui then
-            parent = gethui()
-        elseif CoreGui then
-            parent = CoreGui
-        end
+        Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+        LocalPlayer = Players.LocalPlayer
     end)
-    if not parent then
-        parent = PlayerGui
-    end
-    return parent
 end
+
+-- ══════════════════ KEY SYSTEM MODULE ══════════════════
+local KeySystem = {
+    CurrentKey = nil,
+    Verified = false,
+    _WatchdogRunning = false,
+}
+
+-- [ ⚙️ CONFIGURATION: ตั้งค่าระบบคีย์ที่นี่ ]
+KeySystem.Config = {
+    HubName = "Warz By Unique HUB",
+    Subtitle = "KEY SYSTEM • 1 KEY PER 1 DEVICE",
+
+    -- 1. ลิงก์ไฟล์ pskeys.txt ดิบ (Raw) บน GitHub สำหรับตรวจสอบคีย์
+    KeysUrl = "https://raw.githubusercontent.com/Un1queHUB/Project-S/refs/heads/main/pskeys.txt",
+
+    -- 2. ข้อมูล GitHub สำหรับระบบ Auto-Commit (ผูก HWID ขึ้น GitHub อัตโนมัติเมื่อใช้คีย์ใหม่)
+    GitHubOwner = "Un1queHUB",
+    GitHubRepo  = "Project-S",
+    GitHubPath  = "pskeys.txt",
+
+    --[[
+        [ 🔑 วิธีใส่ GitHub Token เพื่อให้ระบบล็อค HWID ขึ้น GitHub อัตโนมัติ ]
+        1. ไปที่ https://github.com/settings/tokens?type=beta (Fine-grained personal access tokens)
+        2. กด "Generate new token" ตั้งชื่อ เช่น "KeySystemToken"
+        3. Repository access: เลือก "Only select repositories" แล้วเลือก Repo "Project-S"
+        4. Permissions -> Repository permissions -> Contents: เลือก "Read and write"
+        5. กด Generate แล้วนำ Token (เช่น github_pat_xxxx) มาวางในช่องด้านล่าง
+        * หากไม่ได้ใส่ Token ("") ระบบจะยังคงตรวจคีย์ผ่าน GitHub Raw ได้ตามปกติ และแอดมินสามารถนำ HWID ของลูกค้าไปพิมพ์ใส่ใน pskeys.txt เอง (KEY:HWID)
+    --]]
+    GitHubToken = "",
+
+    -- หากเป็น true: คีย์บน GitHub จะต้องมี :HWID เท่านั้นถึงจะเข้าได้ (ป้องกันคนเอาคีย์ว่างไปแชร์กัน)
+    -- หากเป็น false: อนุญาตให้คีย์ที่ยังไม่มี :HWID ถูกผูกกับเครื่องแรกที่นำไปใช้
+    StrictHwidOnly = true,
+
+    -- 3. ชื่อไฟล์เซฟคีย์ในเครื่องผู้ใช้ (ระบบจำคีย์ / Auto-Login)
+    SaveFileName = "WarzUniqueHUB_SavedKey.json",
+
+    -- 4. ลิงก์สำหรับรับคีย์ หรือ ลิงก์ Discord (หากมีจะแสดงปุ่ม "🔑 รับคีย์" บน UI / หากไม่มีให้ใส่ "")
+    GetKeyUrl = "",
+
+    -- 5. เปิดใช้งานระบบล็อกอินอัตโนมัติ (จำคีย์ไม่ต้องพิมพ์ซ้ำ)
+    AutoLogin = true,
+
+    -- 6. ตรวจสอบคีย์ในพื้นหลังทุกๆ N วินาที (หากคีย์โดนลบขณะเล่นอยู่ จะปิดโปรแกรมแล้วเด้ง UI ให้ใส่คีย์ใหม่)
+    WatchdogInterval = 300,
+}
 
 -- ══════════════════ THEME / UI COLORS ══════════════════
-local Theme = {
+local KeyTheme = {
     BG          = Color3.fromRGB(18, 18, 22),
     Header      = Color3.fromRGB(24, 24, 30),
     Card        = Color3.fromRGB(26, 26, 33),
@@ -136,7 +83,7 @@ local Theme = {
     Red         = Color3.fromRGB(231, 76, 60),
     RedHover    = Color3.fromRGB(192, 57, 43),
     Yellow      = Color3.fromRGB(241, 196, 15),
-    Accent      = Color3.fromRGB(230, 230, 235),
+    Accent      = Color3.fromRGB(0, 170, 255),
     White       = Color3.fromRGB(255, 255, 255),
 }
 
@@ -156,10 +103,25 @@ end
 
 local function AddStroke(parent, color, thickness)
     return Create("UIStroke", {
-        Color = color or Theme.Border,
+        Color = color or KeyTheme.Border,
         Thickness = thickness or 1,
         Parent = parent
     })
+end
+
+local function getSafeGuiParent()
+    local parent = nil
+    pcall(function()
+        if gethui then
+            parent = gethui()
+        elseif CoreGui then
+            parent = CoreGui
+        end
+    end)
+    if not parent and LocalPlayer then
+        parent = LocalPlayer:WaitForChild("PlayerGui", 5)
+    end
+    return parent
 end
 
 -- ══════════════════ BASE64 ENGINE ══════════════════
@@ -170,13 +132,25 @@ for i = 1, #b64chars do
 end
 
 local function base64Encode(str)
+    if crypt and crypt.base64encode then
+        local ok, res = pcall(crypt.base64encode, str)
+        if ok and res then return res end
+    elseif crypt and crypt.base64_encode then
+        local ok, res = pcall(crypt.base64_encode, str)
+        if ok and res then return res end
+    elseif syn and syn.crypt and syn.crypt.base64 and syn.crypt.base64.encode then
+        local ok, res = pcall(syn.crypt.base64.encode, str)
+        if ok and res then return res end
+    elseif base64_encode then
+        local ok, res = pcall(base64_encode, str)
+        if ok and res then return res end
+    end
+
     local bytes = {str:byte(1, #str)}
     local result = {}
     local pad = 3 - (#bytes % 3)
     if pad == 3 then pad = 0 end
-    for i = 1, pad do
-        table.insert(bytes, 0)
-    end
+    for i = 1, pad do table.insert(bytes, 0) end
     for i = 1, #bytes, 3 do
         local b1, b2, b3 = bytes[i], bytes[i+1], bytes[i+2]
         local n = (b1 * 65536) + (b2 * 256) + b3
@@ -197,6 +171,20 @@ local function base64Encode(str)
 end
 
 local function base64Decode(data)
+    if crypt and crypt.base64decode then
+        local ok, res = pcall(crypt.base64decode, data)
+        if ok and res then return res end
+    elseif crypt and crypt.base64_decode then
+        local ok, res = pcall(crypt.base64_decode, data)
+        if ok and res then return res end
+    elseif syn and syn.crypt and syn.crypt.base64 and syn.crypt.base64.decode then
+        local ok, res = pcall(syn.crypt.base64.decode, data)
+        if ok and res then return res end
+    elseif base64_decode then
+        local ok, res = pcall(base64_decode, data)
+        if ok and res then return res end
+    end
+
     data = string.gsub(data, "[^A-Za-z0-9+/=]", "")
     local result = {}
     local len = #data
@@ -228,11 +216,13 @@ end
 -- ══════════════════ HWID & EXECUTOR HELPERS ══════════════════
 function KeySystem.GetHWID()
     local hwid = nil
-    if gethwid then
-        pcall(function() hwid = gethwid() end)
-    elseif get_hwid then
-        pcall(function() hwid = get_hwid() end)
-    end
+    pcall(function()
+        if gethwid then
+            hwid = gethwid()
+        elseif get_hwid then
+            hwid = get_hwid()
+        end
+    end)
     if not hwid or hwid == "" then
         pcall(function()
             hwid = game:GetService("RbxAnalyticsService"):GetClientId()
@@ -240,10 +230,59 @@ function KeySystem.GetHWID()
     end
     if not hwid or hwid == "" then
         pcall(function()
-            hwid = tostring(LocalPlayer.UserId)
+            local lp = Players.LocalPlayer
+            if lp then hwid = tostring(lp.UserId) end
         end)
     end
-    return tostring(hwid or "UNKNOWN-HWID")
+    return tostring(hwid or "UNKNOWN-DEVICE-ID")
+end
+
+local function compareHWID(savedHwid, currentHwid)
+    if not savedHwid or not currentHwid then return false end
+    local s = string.lower(string.gsub(tostring(savedHwid), "%s+", ""))
+    local c = string.lower(string.gsub(tostring(currentHwid), "%s+", ""))
+    if s == c then return true end
+
+    local sClean = s:gsub("[{}]", "")
+    local cClean = c:gsub("[{}]", "")
+    if sClean == cClean then return true end
+
+    local hexC = ""
+    for i = 1, #c do
+        hexC = hexC .. string.format("%02x", string.byte(c, i))
+    end
+    if s == hexC then return true end
+
+    local hexS = ""
+    for i = 1, #s do
+        hexS = hexS .. string.format("%02x", string.byte(s, i))
+    end
+    if hexS == c then return true end
+
+    return false
+end
+
+local function copyToClipboard(text)
+    if setclipboard then
+        pcall(setclipboard, text)
+    elseif toclipboard then
+        pcall(toclipboard, text)
+    elseif Clipboard and Clipboard.set then
+        pcall(Clipboard.set, text)
+    end
+end
+
+function KeySystem.CopyHWID()
+    local hwid = KeySystem.GetHWID()
+    copyToClipboard(hwid)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = KeySystem.Config.HubName or "Key System",
+            Text = "คัดลอก HWID เรียบร้อยแล้ว! นำไปส่งให้แอดมินได้เลย",
+            Duration = 3
+        })
+    end)
+    return hwid
 end
 
 local function fetchUrl(url)
@@ -265,16 +304,6 @@ local function fetchUrl(url)
         end
     end
     return nil
-end
-
-local function copyToClipboard(text)
-    if setclipboard then
-        pcall(setclipboard, text)
-    elseif toclipboard then
-        pcall(toclipboard, text)
-    elseif Clipboard and Clipboard.set then
-        pcall(Clipboard.set, text)
-    end
 end
 
 -- ══════════════════ LOCAL SAVE / CACHE ══════════════════
@@ -319,10 +348,11 @@ function KeySystem.DeleteKeyLocal(fileName)
     end
 end
 
--- เมธอด Logout เรียกใช้ได้จากสคริปต์หลักเพื่อลบเซฟและเปลี่ยนคีย์
-function KeySystem.Logout(cfg)
-    cfg = cfg or KeySystem.Config
-    KeySystem.DeleteKeyLocal(cfg.SaveFileName)
+function KeySystem.Logout()
+    KeySystem.DeleteKeyLocal(KeySystem.Config.SaveFileName)
+    KeySystem.CurrentKey = nil
+    KeySystem.Verified = false
+    KeySystem._WatchdogRunning = false
 end
 
 -- ══════════════════ ONLINE VERIFICATION & HWID BINDING ══════════════════
@@ -340,7 +370,7 @@ function KeySystem.VerifyOnline(inputKey, cfg)
     local hasToken = (typeof(cfg.GitHubToken) == "string" and cfg.GitHubToken ~= "")
     local req = (syn and syn.request) or request or http_request or (http and http.request)
 
-    -- 1. ตรวจสอบผ่าน GitHub REST API หากมี Token (เพื่อเตรียม SHA สำหรับเขียนทับ)
+    -- 1. ตรวจสอบผ่าน GitHub REST API หากมี Token (ดึง SHA สำหรับ Auto-Commit)
     if hasToken and req and cfg.GitHubOwner and cfg.GitHubRepo and cfg.GitHubPath then
         local apiUrl = string.format("https://api.github.com/repos/%s/%s/contents/%s", cfg.GitHubOwner, cfg.GitHubRepo, cfg.GitHubPath)
         local ok, resp = pcall(function()
@@ -350,7 +380,7 @@ function KeySystem.VerifyOnline(inputKey, cfg)
                 Headers = {
                     ["Authorization"] = "Bearer " .. cfg.GitHubToken,
                     ["Accept"] = "application/vnd.github.v3+json",
-                    ["User-Agent"] = "Universal-KeySystem"
+                    ["User-Agent"] = "Warz-UniqueHUB-KeySystem"
                 }
             })
         end)
@@ -363,14 +393,14 @@ function KeySystem.VerifyOnline(inputKey, cfg)
         end
     end
 
-    -- 2. หากไม่มี Token หรือ REST API ดึงไม่สำเร็จ ให้ดึงผ่าน Raw URL โดยตรง
+    -- 2. หากไม่มี Token หรือ REST API ดึงไม่สำเร็จ ให้ดึงผ่าน Raw URL โดยตรง (พร้อมพารามิเตอร์ป้องกันแคช)
     if fileContent == "" and cfg.KeysUrl and cfg.KeysUrl ~= "" then
         local rawUrl = cfg.KeysUrl .. "?t=" .. tostring(os.time())
         fileContent = fetchUrl(rawUrl) or fetchUrl(cfg.KeysUrl) or ""
     end
 
     if fileContent == "" then
-        return false, "ไม่สามารถเชื่อมต่อระบบคีย์ได้ กรุณาตรวจสอบอินเทอร์เน็ต"
+        return false, "ไม่สามารถเชื่อมต่อ GitHub ได้ กรุณาตรวจสอบอินเทอร์เน็ต"
     end
 
     -- 3. แยกบรรทัดและประมวลผลคีย์
@@ -393,9 +423,11 @@ function KeySystem.VerifyOnline(inputKey, cfg)
                 local h = string.gsub(string.sub(trimmed, colonIdx + 1), "^%s*(.-)%s*$", "%1")
                 if k == inputKey then
                     keyFound = true
-                    if h == myHwid then
+                    if compareHWID(h, myHwid) then
                         -- HWID ตรงกับเครื่องนี้ 100%
                         saveKeyLocal(cfg.SaveFileName, inputKey, myHwid)
+                        KeySystem.CurrentKey = inputKey
+                        KeySystem.Verified = true
                         return true, "คีย์ถูกต้อง! ยินดีต้อนรับเข้าสู่ระบบ"
                     else
                         -- มีเครื่องอื่นผูกคีย์นี้ไปแล้ว
@@ -414,13 +446,14 @@ function KeySystem.VerifyOnline(inputKey, cfg)
     end
 
     if not keyFound then
-        return false, "คีย์ไม่ถูกต้อง หรือไม่มีอยู่ในระบบ"
+        return false, "คีย์ไม่ถูกต้อง หรือไม่มีอยู่ในระบบ GitHub"
     end
 
     -- 4. จัดการคีย์ที่ยังไม่ได้ผูก HWID
     if keyNeedsBind then
-        if cfg.StrictHwidOnly and not hasToken then
-            return false, "คีย์นี้ยังไม่ได้รับการผูกกับเครื่องของคุณ กรุณาส่ง HWID ให้แอดมินเปิดใช้งาน"
+        -- หากเป็น true: คีย์บน GitHub จะต้องมี :HWID เท่านั้นถึงจะเข้าได้ (ป้องกันคนเอาคีย์ว่างไปแชร์กัน)
+        if cfg.StrictHwidOnly then
+            return false, "คีย์นี้ยังไม่ได้รับการล็อคเครื่อง กรุณาส่ง HWID ให้แอดมินเปิดใช้งาน"
         end
 
         -- กรณีมี GitHub Token: Commit ผูก HWID ขึ้น GitHub ทันที!
@@ -437,11 +470,11 @@ function KeySystem.VerifyOnline(inputKey, cfg)
                     Headers = {
                         ["Authorization"] = "Bearer " .. cfg.GitHubToken,
                         ["Accept"] = "application/vnd.github.v3+json",
-                        ["User-Agent"] = "Universal-KeySystem",
+                        ["User-Agent"] = "Warz-UniqueHUB-KeySystem",
                         ["Content-Type"] = "application/json"
                     },
                     Body = HttpService:JSONEncode({
-                        message = "Lock key " .. inputKey .. " to HWID " .. myHwid,
+                        message = "Auto-Lock Key " .. inputKey .. " to HWID " .. myHwid,
                         content = newBase64,
                         sha = fileSha
                     })
@@ -450,6 +483,8 @@ function KeySystem.VerifyOnline(inputKey, cfg)
 
             if putOk and putResp and (putResp.StatusCode == 200 or putResp.StatusCode == 201) then
                 saveKeyLocal(cfg.SaveFileName, inputKey, myHwid)
+                KeySystem.CurrentKey = inputKey
+                KeySystem.Verified = true
                 return true, "คีย์ถูกต้อง! และได้บันทึกล็อคเครื่องขึ้น GitHub เรียบร้อยแล้ว"
             else
                 warn("[KeySystem] เกิดข้อผิดพลาดในการ Auto-Commit ขึ้น GitHub:", putResp and putResp.Body)
@@ -458,6 +493,8 @@ function KeySystem.VerifyOnline(inputKey, cfg)
 
         -- บันทึกลงในเครื่อง
         saveKeyLocal(cfg.SaveFileName, inputKey, myHwid)
+        KeySystem.CurrentKey = inputKey
+        KeySystem.Verified = true
         return true, "คีย์ถูกต้อง! ยินดีต้อนรับเข้าสู่ระบบ"
     end
 
@@ -471,7 +508,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     local GuiParent = getSafeGuiParent()
 
     -- ปิด UI เก่าทิ้งก่อนเปิดใหม่
-    local guiName = (cfg.HubName or "App") .. "_KeyGUI"
+    local guiName = (cfg.HubName or "Warz") .. "_KeyGUI"
     pcall(function()
         local old = GuiParent:FindFirstChild(guiName)
         if old then old:Destroy() end
@@ -486,20 +523,20 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
 
     local KeyWindow = Create("Frame", {
         Name = "KeyWindow",
-        Size = UDim2.new(0, 380, 0, 440),
-        Position = UDim2.new(0.5, -190, 0.5, -220),
-        BackgroundColor3 = Theme.BG,
+        Size = UDim2.new(0, 390, 0, 450),
+        Position = UDim2.new(0.5, -195, 0.5, -225),
+        BackgroundColor3 = KeyTheme.BG,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         Parent = KeyScreen,
     })
     RoundCorner(KeyWindow, 12)
-    AddStroke(KeyWindow, Theme.Border, 1)
+    AddStroke(KeyWindow, KeyTheme.Border, 1)
 
     -- Header
     local KeyHeader = Create("Frame", {
         Size = UDim2.new(1, 0, 0, 48),
-        BackgroundColor3 = Theme.Header,
+        BackgroundColor3 = KeyTheme.Header,
         BorderSizePixel = 0,
         Parent = KeyWindow,
     })
@@ -507,7 +544,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     Create("Frame", {
         Size = UDim2.new(1, 0, 0, 12),
         Position = UDim2.new(0, 0, 1, -12),
-        BackgroundColor3 = Theme.Header,
+        BackgroundColor3 = KeyTheme.Header,
         BorderSizePixel = 0,
         Parent = KeyHeader,
     })
@@ -515,7 +552,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     local KeyDot = Create("Frame", {
         Size = UDim2.new(0, 10, 0, 10),
         Position = UDim2.new(0, 14, 0.5, -5),
-        BackgroundColor3 = Theme.Yellow,
+        BackgroundColor3 = KeyTheme.Yellow,
         BorderSizePixel = 0,
         Parent = KeyHeader,
     })
@@ -524,12 +561,12 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     Create("TextLabel", {
         Text = cfg.HubName or "Key System",
         Font = Enum.Font.GothamBold,
-        TextSize = 15,
-        TextColor3 = Theme.White,
+        TextSize = 14,
+        TextColor3 = KeyTheme.White,
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 32, 0, 6),
-        Size = UDim2.new(0, 200, 0, 20),
+        Size = UDim2.new(0, 220, 0, 20),
         Parent = KeyHeader,
     })
 
@@ -537,11 +574,11 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         Text = cfg.Subtitle or "KEY SYSTEM • 1 KEY PER 1 DEVICE",
         Font = Enum.Font.Gotham,
         TextSize = 10,
-        TextColor3 = Theme.TextMuted,
+        TextColor3 = KeyTheme.TextMuted,
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 32, 0, 26),
-        Size = UDim2.new(0, 250, 0, 16),
+        Size = UDim2.new(0, 260, 0, 16),
         Parent = KeyHeader,
     })
 
@@ -549,7 +586,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         Text = "✕",
         Font = Enum.Font.GothamBold,
         TextSize = 12,
-        TextColor3 = Theme.TextMuted,
+        TextColor3 = KeyTheme.TextMuted,
         BackgroundColor3 = Color3.fromRGB(34, 34, 42),
         Size = UDim2.new(0, 28, 0, 28),
         Position = UDim2.new(1, -34, 0.5, -14),
@@ -573,7 +610,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         Text = "🔐  ระบบยืนยันตัวตน (Key System)",
         Font = Enum.Font.GothamBold,
         TextSize = 14,
-        TextColor3 = Theme.White,
+        TextColor3 = KeyTheme.White,
         TextXAlignment = Enum.TextXAlignment.Center,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 0, 4),
@@ -582,10 +619,10 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     })
 
     Create("TextLabel", {
-        Text = "คีย์จะถูกล็อคติดเครื่อง 1 คีย์ใช้งานได้แค่เครื่องเดียว",
+        Text = "คีย์จะถูกล็อคติดเครื่อง 1 คีย์ใช้งานได้แค่ 1 เครื่อง ป้องกันการส่งต่อ",
         Font = Enum.Font.Gotham,
         TextSize = 11,
-        TextColor3 = Theme.TextMuted,
+        TextColor3 = KeyTheme.TextMuted,
         TextXAlignment = Enum.TextXAlignment.Center,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 0, 0, 24),
@@ -597,20 +634,20 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     local KeyInputCard = Create("Frame", {
         Size = UDim2.new(1, 0, 0, 44),
         Position = UDim2.new(0, 0, 0, 48),
-        BackgroundColor3 = Theme.Card,
+        BackgroundColor3 = KeyTheme.Card,
         BorderSizePixel = 0,
         Parent = KeyBody,
     })
     RoundCorner(KeyInputCard, 8)
-    AddStroke(KeyInputCard, Theme.Border, 1)
+    AddStroke(KeyInputCard, KeyTheme.Border, 1)
 
     local KeyInput = Create("TextBox", {
         PlaceholderText = "กรอกคีย์ของคุณที่นี่...",
-        PlaceholderColor3 = Theme.TextMuted,
+        PlaceholderColor3 = KeyTheme.TextMuted,
         Text = "",
         Font = Enum.Font.GothamBold,
         TextSize = 12,
-        TextColor3 = Theme.White,
+        TextColor3 = KeyTheme.White,
         BackgroundTransparency = 1,
         Size = UDim2.new(1, -20, 1, 0),
         Position = UDim2.new(0, 10, 0, 0),
@@ -620,20 +657,20 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
 
     -- การ์ดแสดง HWID ของเครื่อง
     local HwidCard = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 78),
+        Size = UDim2.new(1, 0, 0, 80),
         Position = UDim2.new(0, 0, 0, 102),
-        BackgroundColor3 = Theme.Card,
+        BackgroundColor3 = KeyTheme.Card,
         BorderSizePixel = 0,
         Parent = KeyBody,
     })
     RoundCorner(HwidCard, 8)
-    AddStroke(HwidCard, Theme.Border, 1)
+    AddStroke(HwidCard, KeyTheme.Border, 1)
 
     Create("TextLabel", {
         Text = "💻 รหัสเครื่องของคุณ (Hardware ID):",
         Font = Enum.Font.GothamBold,
         TextSize = 11,
-        TextColor3 = Theme.TextMuted,
+        TextColor3 = KeyTheme.TextMuted,
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 12, 0, 8),
@@ -648,33 +685,34 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         Text = displayHwid,
         Font = Enum.Font.Code,
         TextSize = 11,
-        TextColor3 = Theme.Accent,
+        TextColor3 = KeyTheme.Accent,
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 12, 0, 26),
-        Size = UDim2.new(1, -120, 0, 18),
+        Size = UDim2.new(1, -125, 0, 20),
         Parent = HwidCard,
     })
 
+    -- ปุ่มคัดลอก HWID
     local CopyHwidBtn = Create("TextButton", {
         Text = "📋 คัดลอก HWID",
         Font = Enum.Font.GothamBold,
         TextSize = 11,
-        TextColor3 = Theme.White,
-        BackgroundColor3 = Theme.CardHover,
-        Size = UDim2.new(0, 100, 0, 24),
-        Position = UDim2.new(1, -112, 0, 24),
+        TextColor3 = KeyTheme.White,
+        BackgroundColor3 = KeyTheme.CardHover,
+        Size = UDim2.new(0, 105, 0, 26),
+        Position = UDim2.new(1, -117, 0, 23),
         AutoButtonColor = false,
         Parent = HwidCard,
     })
     RoundCorner(CopyHwidBtn, 6)
     CopyHwidBtn.MouseButton1Click:Connect(function()
-        copyToClipboard(myHwidStr)
+        KeySystem.CopyHWID()
         CopyHwidBtn.Text = "✓ คัดลอกแล้ว!"
-        CopyHwidBtn.BackgroundColor3 = Theme.Green
+        CopyHwidBtn.BackgroundColor3 = KeyTheme.Green
         task.delay(1.5, function()
             CopyHwidBtn.Text = "📋 คัดลอก HWID"
-            CopyHwidBtn.BackgroundColor3 = Theme.CardHover
+            CopyHwidBtn.BackgroundColor3 = KeyTheme.CardHover
         end)
     end)
 
@@ -682,10 +720,10 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         Text = "หากคีย์ติดล็อคเครื่อง ให้ส่ง HWID นี้ให้แอดมินปลดล็อค",
         Font = Enum.Font.Gotham,
         TextSize = 10,
-        TextColor3 = Color3.fromRGB(120, 120, 130),
+        TextColor3 = Color3.fromRGB(130, 130, 145),
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 52),
+        Position = UDim2.new(0, 12, 0, 54),
         Size = UDim2.new(1, -24, 0, 16),
         Parent = HwidCard,
     })
@@ -695,10 +733,10 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         Text = "พร้อมตรวจสอบคีย์",
         Font = Enum.Font.Gotham,
         TextSize = 11,
-        TextColor3 = Theme.TextMuted,
+        TextColor3 = KeyTheme.TextMuted,
         TextXAlignment = Enum.TextXAlignment.Center,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 188),
+        Position = UDim2.new(0, 0, 0, 190),
         Size = UDim2.new(1, 0, 0, 22),
         Parent = KeyBody,
     })
@@ -708,10 +746,10 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         Text = "✓  ยืนยันคีย์ (SUBMIT KEY)",
         Font = Enum.Font.GothamBold,
         TextSize = 13,
-        TextColor3 = Theme.White,
-        BackgroundColor3 = Theme.Green,
+        TextColor3 = KeyTheme.White,
+        BackgroundColor3 = KeyTheme.Green,
         Size = UDim2.new(1, 0, 0, 42),
-        Position = UDim2.new(0, 0, 0, 218),
+        Position = UDim2.new(0, 0, 0, 220),
         AutoButtonColor = false,
         Parent = KeyBody,
     })
@@ -723,16 +761,16 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         local input = KeyInput.Text
         if input == "" then
             KeyStatusMsg.Text = "✗ กรุณากรอกคีย์ก่อนกดยืนยัน"
-            KeyStatusMsg.TextColor3 = Theme.Red
+            KeyStatusMsg.TextColor3 = KeyTheme.Red
             return
         end
 
         isChecking = true
         SubmitBtn.Text = "⏳ กำลังตรวจสอบและล็อค HWID..."
-        SubmitBtn.BackgroundColor3 = Theme.CardHover
-        KeyStatusMsg.Text = "กำลังติดต่อระบบเพื่อยืนยัน..."
-        KeyStatusMsg.TextColor3 = Theme.Yellow
-        KeyDot.BackgroundColor3 = Theme.Yellow
+        SubmitBtn.BackgroundColor3 = KeyTheme.CardHover
+        KeyStatusMsg.Text = "กำลังติดต่อระบบ GitHub เพื่อยืนยัน..."
+        KeyStatusMsg.TextColor3 = KeyTheme.Yellow
+        KeyDot.BackgroundColor3 = KeyTheme.Yellow
 
         task.spawn(function()
             local success, msg = KeySystem.VerifyOnline(input, cfg)
@@ -740,10 +778,10 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
 
             if success then
                 KeyStatusMsg.Text = "✓ " .. msg
-                KeyStatusMsg.TextColor3 = Theme.Green
-                KeyDot.BackgroundColor3 = Theme.Green
+                KeyStatusMsg.TextColor3 = KeyTheme.Green
+                KeyDot.BackgroundColor3 = KeyTheme.Green
                 SubmitBtn.Text = "✓ สำเร็จ! กำลังเปิดโปรแกรม..."
-                SubmitBtn.BackgroundColor3 = Theme.Green
+                SubmitBtn.BackgroundColor3 = KeyTheme.Green
 
                 pcall(function()
                     StarterGui:SetCore("SendNotification", {
@@ -761,10 +799,10 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
                 end
             else
                 KeyStatusMsg.Text = "✗ " .. msg
-                KeyStatusMsg.TextColor3 = Theme.Red
-                KeyDot.BackgroundColor3 = Theme.Red
+                KeyStatusMsg.TextColor3 = KeyTheme.Red
+                KeyDot.BackgroundColor3 = KeyTheme.Red
                 SubmitBtn.Text = "✓  ยืนยันคีย์ (SUBMIT KEY)"
-                SubmitBtn.BackgroundColor3 = Theme.Green
+                SubmitBtn.BackgroundColor3 = KeyTheme.Green
             end
         end)
     end)
@@ -772,7 +810,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     -- ปุ่มวาง / ล้างข้อความ / รับคีย์
     local PasteRow = Create("Frame", {
         Size = UDim2.new(1, 0, 0, 28),
-        Position = UDim2.new(0, 0, 0, 270),
+        Position = UDim2.new(0, 0, 0, 272),
         BackgroundTransparency = 1,
         Parent = KeyBody,
     })
@@ -789,8 +827,8 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         Text = "📋 วางคีย์",
         Font = Enum.Font.Gotham,
         TextSize = 11,
-        TextColor3 = Theme.TextMuted,
-        BackgroundColor3 = Theme.Card,
+        TextColor3 = KeyTheme.TextMuted,
+        BackgroundColor3 = KeyTheme.Card,
         Size = UDim2.new(btnWidthScale, 0, 1, 0),
         AutoButtonColor = false,
         Parent = PasteRow,
@@ -801,8 +839,8 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         Text = "🗑 ล้าง",
         Font = Enum.Font.Gotham,
         TextSize = 11,
-        TextColor3 = Theme.TextMuted,
-        BackgroundColor3 = Theme.Card,
+        TextColor3 = KeyTheme.TextMuted,
+        BackgroundColor3 = KeyTheme.Card,
         Size = UDim2.new(btnWidthScale, 0, 1, 0),
         AutoButtonColor = false,
         Parent = PasteRow,
@@ -823,8 +861,8 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
             Text = "🔑 รับคีย์",
             Font = Enum.Font.Gotham,
             TextSize = 11,
-            TextColor3 = Theme.Yellow,
-            BackgroundColor3 = Theme.Card,
+            TextColor3 = KeyTheme.Yellow,
+            BackgroundColor3 = KeyTheme.Card,
             Size = UDim2.new(btnWidthScale, 0, 1, 0),
             AutoButtonColor = false,
             Parent = PasteRow,
@@ -832,7 +870,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         RoundCorner(GetKeyBtn, 6)
         GetKeyBtn.MouseButton1Click:Connect(function()
             copyToClipboard(cfg.GetKeyUrl)
-            GetKeyBtn.Text = "✓ คัดลอกลิงก์แล้ว"
+            GetKeyBtn.Text = "✓ คัดลอกแล้ว"
             pcall(function()
                 StarterGui:SetCore("SendNotification", {
                     Title = cfg.HubName or "Key System",
@@ -848,18 +886,18 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
 
     -- Footer
     Create("TextLabel", {
-        Text = (cfg.HubName or "Unique HUB") .. " • GitHub Verified • HWID Locked",
+        Text = (cfg.HubName or "Warz By Unique HUB") .. " • GitHub Verified • HWID Locked",
         Font = Enum.Font.Gotham,
         TextSize = 10,
-        TextColor3 = Color3.fromRGB(100, 100, 110),
+        TextColor3 = Color3.fromRGB(110, 110, 125),
         TextXAlignment = Enum.TextXAlignment.Center,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 312),
+        Position = UDim2.new(0, 0, 0, 316),
         Size = UDim2.new(1, 0, 0, 16),
         Parent = KeyBody,
     })
 
-    -- ระบบลากหน้าต่าง (Draggable) รองรับทั้งเมาส์และมือถือ
+    -- Draggable Header
     local dragKey = false
     local dragKeyInput, dragKeyStart, startKeyPos
 
@@ -893,13 +931,57 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     end)
 end
 
--- ══════════════════ ฟังก์ชันเริ่มต้นทำงาน (START / INIT) ══════════════════
---[[
-    วิธีใช้งาน:
-    KeySystem.Start(customConfig, function()
-        -- ใส่โค้ดหลักของคุณที่นี่ (จะทำงานหลังจากคีย์ผ่านแล้วเท่านั้น)
+-- ══════════════════ WATCHDOG & RE-CHECK LOGIC ══════════════════
+function KeySystem.StartWatchdog(activeKey, cfg)
+    if KeySystem._WatchdogRunning then return end
+    KeySystem._WatchdogRunning = true
+
+    task.spawn(function()
+        local interval = cfg.WatchdogInterval or 300
+        while KeySystem._WatchdogRunning and KeySystem.Verified do
+            task.wait(interval)
+            if not KeySystem.Verified then break end
+
+            local ok, msg = KeySystem.VerifyOnline(activeKey, cfg)
+            if not ok then
+                -- คีย์ถูกเพิกถอน หรือถูกลบจาก GitHub ขณะเล่นอยู่!
+                KeySystem.Verified = false
+                KeySystem._WatchdogRunning = false
+                KeySystem.DeleteKeyLocal(cfg.SaveFileName)
+
+                pcall(function()
+                    StarterGui:SetCore("SendNotification", {
+                        Title = cfg.HubName or "Key System",
+                        Text = "คีย์ของคุณถูกเพิกถอนหรือลบออกจาก GitHub แล้ว! กำลังปิดโปรแกรม...",
+                        Duration = 5
+                    })
+                end)
+
+                -- ปิด Fluent UI ถ้าเปิดอยู่
+                pcall(function()
+                    if _G.WarzWindow and _G.WarzWindow.Destroy then
+                        _G.WarzWindow:Destroy()
+                    end
+                    if _G.WarzFluent and _G.WarzFluent.Destroy then
+                        _G.WarzFluent:Destroy()
+                    elseif _G.WarzFluent and _G.WarzFluent.GUI then
+                        _G.WarzFluent.GUI:Destroy()
+                    end
+                end)
+
+                -- เด้ง UI ให้ใส่คีย์ใหม่
+                KeySystem.OpenUI(cfg, function()
+                    if _G.WarzStartFunction then
+                        task.spawn(_G.WarzStartFunction)
+                    end
+                end)
+                break
+            end
+        end
     end)
---]]
+end
+
+-- ══════════════════ ฟังก์ชันเริ่มต้นทำงาน (START / INIT) ══════════════════
 function KeySystem.Start(customConfig, onSuccessCallback)
     local cfg = {}
     for k, v in pairs(KeySystem.Config) do cfg[k] = v end
@@ -907,1523 +989,1044 @@ function KeySystem.Start(customConfig, onSuccessCallback)
         for k, v in pairs(customConfig) do cfg[k] = v end
     end
 
-    -- 1. ตรวจสอบคีย์ที่บันทึกไว้ในเครื่อง (Auto-Login)
+    -- 1. ตรวจสอบคีย์ที่บันทึกไว้ในเครื่อง (Auto Login)
     if cfg.AutoLogin then
         local saved = readKeyLocal(cfg.SaveFileName)
         local myHwid = KeySystem.GetHWID()
 
-        if saved and saved.key and saved.hwid and saved.hwid == myHwid then
+        if saved and saved.key and saved.hwid and compareHWID(saved.hwid, myHwid) then
+            -- [ข้อ 6] ตรวจสอบคีย์ใหม่ทุกรอบที่ใช้งานผ่าน GitHub Raw สดๆ
             local ok, msg = KeySystem.VerifyOnline(saved.key, cfg)
             if ok then
                 pcall(function()
                     StarterGui:SetCore("SendNotification", {
                         Title = cfg.HubName or "Key System",
-                        Text = "เข้าสู่ระบบอัตโนมัติสำเร็จ! ยินดีต้อนรับ",
+                        Text = "เข้าสู่ระบบอัตโนมัติสำเร็จ! คีย์ผ่านการตรวจสอบ",
                         Duration = 3
                     })
                 end)
                 if onSuccessCallback then
                     task.spawn(onSuccessCallback)
                 end
+                KeySystem.StartWatchdog(saved.key, cfg)
                 return
-            end
-        end
-    end
-
-    -- 2. หากไม่มีคีย์เซฟ หรือคีย์เซฟไม่ถูกต้อง ให้เปิด UI ใส่คีย์
-    KeySystem.OpenUI(cfg, onSuccessCallback)
-end
-
-
-
--- Config
-KeySystem.Config = {
-    HubName = "(S)Unique HUB",
-    Subtitle = "KEY SYSTEM * 1 KEY PER 1 DEVICE",
-    KeysUrl = "https://raw.githubusercontent.com/Un1queHUB/Project-S/refs/heads/main/pskeys.txt",
-    GitHubOwner = "Un1queHUB",
-    GitHubRepo  = "Project-S",
-    GitHubPath  = "pskeys.txt",
-    GitHubToken = "",
-    StrictHwidOnly = true,
-    SaveFileName = "UniqueHub_SavedKey.json",
-    GetKeyUrl = "",
-    AutoLogin = true,
-}
-
-KeySystem.Start(KeySystem.Config, function()
-local _initSuccess, _initErr = pcall(function()
-
--- ป้องกันการรันซ้ำ ล้าง instance เก่าออกก่อน
-if _G.SilasUniqueHubCleanup then
-    pcall(_G.SilasUniqueHubCleanup)
-end
-
-local scriptRunning = true
-local connections = {}
-
--- ══════════════════ SERVICES & SAFE HELPERS ══════════════════
-local Players                = game:GetService("Players")
-local RunService             = game:GetService("RunService")
-local UserInputService       = game:GetService("UserInputService")
-local TweenService           = game:GetService("TweenService")
-local HttpService            = game:GetService("HttpService")
-local CoreGui                = game:GetService("CoreGui")
-local Workspace              = game:GetService("Workspace")
-local ReplicatedStorage      = game:GetService("ReplicatedStorage")
-local ProximityPromptService = game:GetService("ProximityPromptService")
-local VirtualInputManager    = game:GetService("VirtualInputManager")
-
-local LocalPlayer = Players.LocalPlayer
-if not LocalPlayer then
-    pcall(function()
-        LocalPlayer = Players.PlayerAdded:Wait()
-    end)
-    if not LocalPlayer then
-        LocalPlayer = Players.LocalPlayer
-    end
-end
-
-local Camera = Workspace.CurrentCamera or Workspace:FindFirstChildOfClass("Camera")
-local PlayerGui = nil
-pcall(function()
-    PlayerGui = LocalPlayer:WaitForChild("PlayerGui", 3) or LocalPlayer:FindFirstChild("PlayerGui")
-end)
-
--- Safe task helpers for executor compatibility
-local task_spawn = (task and task.spawn) or spawn or function(f) coroutine.wrap(f)() end
-local task_wait  = (task and task.wait)  or wait
-
-local function sendNotification(title, text, duration)
-    pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = title or "(S)Unique HUB",
-            Text = text or "",
-            Duration = duration or 3
-        })
-    end)
-end
-
--- ══════════════════ ROOT GUI PARENT (SAFE RESOLVER) ══════════════════
--- ทำลาย GUI เก่าก่อน
-pcall(function()
-    if CoreGui and CoreGui:FindFirstChild("SilasUniqueHub_GUI") then
-        CoreGui.SilasUniqueHub_GUI:Destroy()
-    end
-end)
-if PlayerGui then
-    pcall(function()
-        if PlayerGui:FindFirstChild("SilasUniqueHub_GUI") then
-            PlayerGui.SilasUniqueHub_GUI:Destroy()
-        end
-    end)
-end
-
-local GuiParent = nil
-pcall(function()
-    if gethui then
-        GuiParent = gethui()
-    end
-end)
-if not GuiParent then
-    pcall(function()
-        local test = Instance.new("Folder")
-        test.Parent = CoreGui
-        test:Destroy()
-        GuiParent = CoreGui
-    end)
-end
-if not GuiParent then
-    GuiParent = PlayerGui
-end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name           = "SilasUniqueHub_GUI"
-ScreenGui.ResetOnSpawn   = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-
-pcall(function()
-    ScreenGui.Parent = GuiParent
-end)
-if not ScreenGui.Parent and PlayerGui then
-    ScreenGui.Parent = PlayerGui
-end
-
--- ══════════════════ LOGO ASSET ══════════════════
-local logoAsset = nil
-pcall(function()
-    if isfile and getcustomasset and isfile("UniqueHub_Logo.jpg") then
-        logoAsset = getcustomasset("UniqueHub_Logo.jpg")
-    end
-end)
-
--- ══════════════════ THEME (MONOCHROME B&W) ══════════════════
-local Theme = {
-    BG          = Color3.fromRGB(14, 14, 16),
-    Sidebar     = Color3.fromRGB(20, 20, 23),
-    Card        = Color3.fromRGB(25, 25, 29),
-    CardHover   = Color3.fromRGB(33, 33, 38),
-    Border      = Color3.fromRGB(44, 44, 50),
-    White       = Color3.fromRGB(250, 250, 250),
-    WhiteSoft   = Color3.fromRGB(210, 210, 215),
-    Muted       = Color3.fromRGB(140, 140, 145),
-    DarkText    = Color3.fromRGB(15, 15, 18),
-    TogOff      = Color3.fromRGB(40, 40, 45),
-    TogOffKnob  = Color3.fromRGB(130, 130, 135),
-    TogOn       = Color3.fromRGB(245, 245, 245),
-    TogOnKnob   = Color3.fromRGB(15, 15, 18),
-    BadgeBg     = Color3.fromRGB(30, 30, 35),
-    Green       = Color3.fromRGB(46, 204, 113),
-    Yellow      = Color3.fromRGB(241, 196, 15),
-    Red         = Color3.fromRGB(231, 76, 60),
-    Gold        = Color3.fromRGB(255, 215, 0),
-    Cyan        = Color3.fromRGB(0, 200, 255),
-    Purple      = Color3.fromRGB(180, 100, 255),
-    Orange      = Color3.fromRGB(255, 160, 60),
-}
-
--- ══════════════════ CONFIGURATION STATE ══════════════════
-local Config = {
-    -- Aimbot
-    aimbotEnabled      = false,
-    noBulletDrop       = true,
-    aimModeIndex       = 1, -- 1: Smooth Cam, 2: Hard Lock, 3: Mouse Delta
-    smoothIndex        = 2, -- 0.25
-    wallCheckEnabled   = true,
-    targetPartIndex    = 1, -- 1: Head, 2: Neck, 3: HumanoidRootPart
-    leadIndex          = 3, -- 1.0
-    fovEnabled         = true,
-    fovRadius          = 140, -- Slider: 30 - 600 px
-
-    -- Visuals / ESP
-    espEnabled         = true,
-    teamCheckEnabled   = false,
-    boxEspEnabled      = true,
-    espHealthBar       = true,
-    targetHudEnabled   = true,
-
-    -- Dropped Item ESP
-    itemEspEnabled     = false,
-    itemCategory       = "ทั้งหมด",
-    itemSearch         = {},
-    itemEspMaxDist     = 300, -- Slider: 50 - 1500 studs
-
-    -- Movement & Body
-    speedEnabled       = false,
-    speedValue         = 32, -- Slider: 16 - 120
-    infiniteStamina    = false,
-    noclipEnabled      = false,
-    hitboxExpanded     = false,
-    hitboxSize         = 7,  -- Slider: 2 - 20
-
-    -- Combat & Misc
-    autoHealEnabled    = false,
-    backAlertEnabled   = false,
-    instantPickup      = false,
-
-    -- Loot WarZ
-    undergroundLoot    = false,
-    autoPickupAura     = false,
-    lootSearch         = {},
-
-    -- Selected config name
-    selectedConfigItem = "Default",
-}
-
-local DefaultConfig = {}
-for k, v in pairs(Config) do DefaultConfig[k] = v end
-
--- Options lists
-local aimModes = {"Smooth Cam", "Hard Lock", "Mouse Delta"}
-local smoothnessLevels = {0.1, 0.25, 0.5, 0.8, 1.0}
-local targetParts = {"Head", "Neck", "HumanoidRootPart"}
-local targetPartNames = {"Head [หัว]", "Neck [คอ]", "Body [ลำตัว]"}
-local leadMultipliers = {0, 0.5, 1.0, 1.5, 2.0}
-local itemCategories = {"ทั้งหมด", "อาวุธ", "กระสุน", "ยาและเลือด", "อาหาร/น้ำ", "เกราะ/กระเป๋า", "อื่น ๆ"}
-
--- State
-local stickyTarget = nil
-local isMinimized = false
-local currentActiveConfigName = "Default"
-local savedConfigList = {"Default"}
-local CONFIG_SAVE_FILE = "(S)UniqueHub_Configs.json"
-
--- UI Controls Registry for Syncing
-local UIControls = {
-    toggles   = {},
-    sliders   = {},
-    selectors = {},
-    inputs    = {}
-}
-
--- ══════════════════ CONFIG MANAGER (MULTI-CONFIG) ══════════════════
-local function loadAllConfigsFromDisk()
-    if isfile and isfile(CONFIG_SAVE_FILE) and readfile then
-        local ok, data = pcall(function()
-            return HttpService:JSONDecode(readfile(CONFIG_SAVE_FILE))
-        end)
-        if ok and type(data) == "table" and data.Configs then
-            return data
-        end
-    end
-    -- ค่าเริ่มต้น
-    return {
-        Current = "Default",
-        Configs = {
-            Default = DefaultConfig
-        }
-    }
-end
-
-local function saveAllConfigsToDisk(masterData)
-    if writefile then
-        pcall(function()
-            writefile(CONFIG_SAVE_FILE, HttpService:JSONEncode(masterData))
-        end)
-    end
-end
-
-local function refreshConfigNamesList()
-    local master = loadAllConfigsFromDisk()
-    savedConfigList = {}
-    for name, _ in pairs(master.Configs) do
-        table.insert(savedConfigList, name)
-    end
-    table.sort(savedConfigList)
-    if #savedConfigList == 0 then
-        table.insert(savedConfigList, "Default")
-    end
-end
-refreshConfigNamesList()
-
--- Forward declarations for UI sync
-local syncAllUIElements = nil
-
-local function applyConfigData(newConfig)
-    for k, v in pairs(newConfig) do
-        if Config[k] ~= nil then
-            Config[k] = v
-        end
-    end
-    if syncAllUIElements then
-        syncAllUIElements()
-    end
-end
-
--- ══════════════════ UI BUILDER HELPERS ══════════════════
-local function Create(cls, props)
-    local o = Instance.new(cls)
-    for k, v in pairs(props or {}) do
-        if k ~= "Parent" then o[k] = v end
-    end
-    if props and props.Parent then o.Parent = props.Parent end
-    return o
-end
-
-local function RoundCorner(p, r)
-    return Create("UICorner", {CornerRadius = UDim.new(0, r or 8), Parent = p})
-end
-
-local function Stroke(p, c, t)
-    return Create("UIStroke", {Color = c or Theme.Border, Thickness = t or 1, Parent = p})
-end
-
-local function Tween(obj, props, dur, style, dir)
-    local tw = TweenService:Create(obj,
-        TweenInfo.new(dur or 0.18, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out),
-        props)
-    tw:Play()
-    return tw
-end
-
--- ══════════════════ MAIN WINDOW FRAME (560 x 390) ══════════════════
-local MainFrame = Create("Frame", {
-    Name             = "MainFrame",
-    Size             = UDim2.new(0, 560, 0, 390),
-    Position         = UDim2.new(0.5, -280, 0.5, -195),
-    BackgroundColor3 = Theme.BG,
-    BorderSizePixel  = 0,
-    Active           = true,
-    Draggable        = true,
-    ClipsDescendants = false,
-    Visible          = true,
-    Parent           = ScreenGui,
-})
-RoundCorner(MainFrame, 10)
-Stroke(MainFrame, Theme.Border, 1)
-
--- ══════════════════ HEADER BAR ══════════════════
-local Header = Create("Frame", {
-    Name             = "Header",
-    Size             = UDim2.new(1, 0, 0, 54),
-    Position         = UDim2.new(0, 0, 0, 0),
-    BackgroundColor3 = Theme.Sidebar,
-    BorderSizePixel  = 0,
-    Parent           = MainFrame,
-})
-RoundCorner(Header, 10)
-
-Create("Frame", {
-    Size             = UDim2.new(1, 0, 0, 10),
-    Position         = UDim2.new(0, 0, 1, -10),
-    BackgroundColor3 = Theme.Sidebar,
-    BorderSizePixel  = 0,
-    Parent           = Header,
-})
-
-Create("Frame", {
-    Size             = UDim2.new(1, 0, 0, 1),
-    Position         = UDim2.new(0, 0, 1, -1),
-    BackgroundColor3 = Theme.Border,
-    BorderSizePixel  = 0,
-    Parent           = Header,
-})
-
--- กล่องโลโก้
-local LogoBox = Create("Frame", {
-    Name             = "LogoBox",
-    Size             = UDim2.new(0, 38, 0, 38),
-    Position         = UDim2.new(0, 12, 0.5, -19),
-    BackgroundColor3 = Theme.Card,
-    BorderSizePixel  = 0,
-    Parent           = Header,
-})
-RoundCorner(LogoBox, 8)
-Stroke(LogoBox, Theme.Border, 1)
-
-if logoAsset then
-    Create("ImageLabel", {
-        Size                   = UDim2.new(1, -6, 1, -6),
-        Position               = UDim2.new(0, 3, 0, 3),
-        BackgroundTransparency = 1,
-        ScaleType              = Enum.ScaleType.Fit,
-        Image                  = logoAsset,
-        Parent                 = LogoBox,
-    })
-else
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamBlack,
-        Text                   = "U",
-        TextColor3             = Theme.White,
-        TextSize               = 22,
-        Parent                 = LogoBox,
-    })
-end
-
--- ชื่อ (S)Unique HUB
-Create("TextLabel", {
-    Name                   = "Title",
-    Text                   = "(S)Unique HUB",
-    Font                   = Enum.Font.GothamBold,
-    TextSize               = 17,
-    TextColor3             = Theme.White,
-    TextXAlignment         = Enum.TextXAlignment.Left,
-    BackgroundTransparency = 1,
-    Position               = UDim2.new(0, 58, 0, 9),
-    Size                   = UDim2.new(0, 150, 0, 20),
-    Parent                 = Header,
-})
-
-Create("TextLabel", {
-    Name                   = "Subtitle",
-    Text                   = "Silas V1 Engine  •  Monochrome Edition",
-    Font                   = Enum.Font.Gotham,
-    TextSize               = 11,
-    TextColor3             = Theme.Muted,
-    TextXAlignment         = Enum.TextXAlignment.Left,
-    BackgroundTransparency = 1,
-    Position               = UDim2.new(0, 58, 0, 30),
-    Size                   = UDim2.new(0, 220, 0, 16),
-    Parent                 = Header,
-})
-
--- ป้ายเวอร์ชัน
-local VerBadge = Create("Frame", {
-    Size             = UDim2.new(0, 52, 0, 22),
-    Position         = UDim2.new(0, 215, 0, 8),
-    BackgroundColor3 = Theme.BadgeBg,
-    BorderSizePixel  = 0,
-    Parent           = Header,
-})
-RoundCorner(VerBadge, 6)
-Stroke(VerBadge, Theme.Border, 1)
-Create("TextLabel", {
-    Size                   = UDim2.new(1, 0, 1, 0),
-    BackgroundTransparency = 1,
-    Font                   = Enum.Font.GothamBold,
-    Text                   = "v3.2 S",
-    TextColor3             = Theme.WhiteSoft,
-    TextSize               = 10,
-    Parent                 = VerBadge,
-})
-
--- ป้ายแสดง Config ปัจจุบัน
-local ActiveConfigBadge = Create("Frame", {
-    Size             = UDim2.new(0, 110, 0, 22),
-    Position         = UDim2.new(0, 275, 0, 8),
-    BackgroundColor3 = Theme.BadgeBg,
-    BorderSizePixel  = 0,
-    Parent           = Header,
-})
-RoundCorner(ActiveConfigBadge, 6)
-Stroke(ActiveConfigBadge, Theme.Border, 1)
-local ActiveConfigBadgeLabel = Create("TextLabel", {
-    Size                   = UDim2.new(1, 0, 1, 0),
-    BackgroundTransparency = 1,
-    Font                   = Enum.Font.GothamMedium,
-    Text                   = "📁 Default",
-    TextColor3             = Theme.WhiteSoft,
-    TextSize               = 10,
-    Parent                 = ActiveConfigBadge,
-})
-
--- ปุ่มย่อ [X] และปุ่มขีด [-]
-local MinKeyBadge = Create("Frame", {
-    Size             = UDim2.new(0, 80, 0, 28),
-    Position         = UDim2.new(1, -120, 0.5, -14),
-    BackgroundColor3 = Theme.Card,
-    BorderSizePixel  = 0,
-    Parent           = Header,
-})
-RoundCorner(MinKeyBadge, 6)
-Stroke(MinKeyBadge, Theme.Border, 1)
-Create("TextLabel", {
-    Size                   = UDim2.new(1, 0, 1, 0),
-    BackgroundTransparency = 1,
-    Font                   = Enum.Font.GothamMedium,
-    Text                   = "กด [X] ย่อ",
-    TextColor3             = Theme.WhiteSoft,
-    TextSize               = 11,
-    Parent                 = MinKeyBadge,
-})
-
-local MinBtn = Create("TextButton", {
-    Name             = "MinBtn",
-    Size             = UDim2.new(0, 28, 0, 28),
-    Position         = UDim2.new(1, -34, 0.5, -14),
-    BackgroundColor3 = Theme.Card,
-    BorderSizePixel  = 0,
-    Font             = Enum.Font.GothamBold,
-    Text             = "—",
-    TextColor3       = Theme.White,
-    TextSize         = 14,
-    Parent           = Header,
-})
-RoundCorner(MinBtn, 6)
-Stroke(MinBtn, Theme.Border, 1)
-
--- ══════════════════ MINIMIZED FLOATING BAR ══════════════════
-local MiniBar = Create("Frame", {
-    Name             = "MiniBar",
-    Size             = UDim2.new(0, 170, 0, 36),
-    Position         = UDim2.new(0.5, -85, 0.05, 0),
-    BackgroundColor3 = Theme.BG,
-    BorderSizePixel  = 0,
-    Active           = true,
-    Draggable        = true,
-    Visible          = false,
-    Parent           = ScreenGui,
-})
-RoundCorner(MiniBar, 8)
-Stroke(MiniBar, Theme.Border, 1)
-
-if logoAsset then
-    local MiniLogo = Create("ImageLabel", {
-        Size                   = UDim2.new(0, 24, 0, 24),
-        Position               = UDim2.new(0, 6, 0.5, -12),
-        BackgroundTransparency = 1,
-        ScaleType              = Enum.ScaleType.Fit,
-        Image                  = logoAsset,
-        Parent                 = MiniBar,
-    })
-    RoundCorner(MiniLogo, 4)
-end
-
-Create("TextLabel", {
-    Size                   = UDim2.new(1, -70, 1, 0),
-    Position               = UDim2.new(0, 34, 0, 0),
-    BackgroundTransparency = 1,
-    Font                   = Enum.Font.GothamBold,
-    Text                   = "(S)Unique HUB",
-    TextColor3             = Theme.White,
-    TextSize               = 11,
-    TextXAlignment         = Enum.TextXAlignment.Left,
-    Parent                 = MiniBar,
-})
-
-local MiniExpandBtn = Create("TextButton", {
-    Size             = UDim2.new(0, 26, 0, 24),
-    Position         = UDim2.new(1, -30, 0.5, -12),
-    BackgroundColor3 = Theme.Card,
-    BorderSizePixel  = 0,
-    Font             = Enum.Font.GothamBold,
-    Text             = "▢",
-    TextColor3       = Theme.White,
-    TextSize         = 11,
-    Parent           = MiniBar,
-})
-RoundCorner(MiniExpandBtn, 4)
-Stroke(MiniExpandBtn, Theme.Border, 1)
-
-local function toggleMinimize()
-    isMinimized = not isMinimized
-    if isMinimized then
-        MainFrame.Visible = false
-        MiniBar.Visible   = true
-    else
-        MiniBar.Visible   = false
-        MainFrame.Visible = true
-    end
-end
-
-MinBtn.MouseButton1Click:Connect(toggleMinimize)
-MiniExpandBtn.MouseButton1Click:Connect(toggleMinimize)
-
-table.insert(connections, UserInputService.InputBegan:Connect(function(input, gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.X then
-        toggleMinimize()
-    end
-end))
-
--- ══════════════════ SIDEBAR (ซ้าย) ══════════════════
-local Sidebar = Create("Frame", {
-    Name             = "Sidebar",
-    Size             = UDim2.new(0, 150, 1, -54),
-    Position         = UDim2.new(0, 0, 0, 54),
-    BackgroundColor3 = Theme.Sidebar,
-    BorderSizePixel  = 0,
-    Parent           = MainFrame,
-})
-RoundCorner(Sidebar, 10)
-
-Create("Frame", {
-    Size             = UDim2.new(0, 10, 1, 0),
-    Position         = UDim2.new(1, -10, 0, 0),
-    BackgroundColor3 = Theme.Sidebar,
-    BorderSizePixel  = 0,
-    Parent           = Sidebar,
-})
-
-Create("Frame", {
-    Size             = UDim2.new(0, 1, 1, 0),
-    Position         = UDim2.new(1, -1, 0, 0),
-    BackgroundColor3 = Theme.Border,
-    BorderSizePixel  = 0,
-    Parent           = Sidebar,
-})
-
-local TabContainer = Create("Frame", {
-    Name                   = "TabContainer",
-    Size                   = UDim2.new(1, 0, 1, 0),
-    BackgroundTransparency = 1,
-    BorderSizePixel        = 0,
-    Parent                 = Sidebar,
-})
-
-local SidebarList = Create("UIListLayout", {
-    Padding        = UDim.new(0, 4),
-    SortOrder      = Enum.SortOrder.LayoutOrder,
-    Parent         = TabContainer,
-})
-Create("UIPadding", {
-    PaddingTop   = UDim.new(0, 10),
-    PaddingLeft  = UDim.new(0, 8),
-    PaddingRight = UDim.new(0, 8),
-    Parent       = TabContainer,
-})
-
--- ══════════════════ CONTENT AREA (ขวา) ══════════════════
-local ContentArea = Create("Frame", {
-    Name                   = "ContentArea",
-    Size                   = UDim2.new(1, -150, 1, -54),
-    Position               = UDim2.new(0, 150, 0, 54),
-    BackgroundTransparency = 1,
-    ClipsDescendants       = true,
-    Parent                 = MainFrame,
-})
-
--- Tab Containers storage
-local TabFrames  = {}
-local tabButtons = {}
-local currentTabName = "Aimbot"
-
-local function createTabContent(name, isDefaultVisible)
-    local scroll = Create("ScrollingFrame", {
-        Name                   = name .. "Scroll",
-        Size                   = UDim2.new(1, 0, 1, 0),
-        Position               = UDim2.new(0, 0, 0, 0),
-        BackgroundTransparency = 1,
-        BorderSizePixel        = 0,
-        ScrollBarThickness     = 4,
-        ScrollBarImageColor3   = Color3.fromRGB(60, 60, 65),
-        CanvasSize             = UDim2.new(0, 0, 0, 0),
-        Visible                = isDefaultVisible or false,
-        Parent                 = ContentArea,
-    })
-
-    local listLayout = Create("UIListLayout", {
-        Padding   = UDim.new(0, 8),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent    = scroll,
-    })
-    Create("UIPadding", {
-        PaddingTop    = UDim.new(0, 12),
-        PaddingBottom = UDim.new(0, 20),
-        PaddingLeft   = UDim.new(0, 14),
-        PaddingRight  = UDim.new(0, 18),
-        Parent        = scroll,
-    })
-
-    listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        scroll.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y + 30)
-    end)
-
-    TabFrames[name] = scroll
-    return scroll
-end
-
-local function switchTab(name)
-    currentTabName = name
-    for tName, frame in pairs(TabFrames) do
-        frame.Visible = (tName == name)
-    end
-    for tName, data in pairs(tabButtons) do
-        local active = (tName == name)
-        Tween(data.Btn, {
-            BackgroundTransparency = active and 0 or 1,
-            BackgroundColor3       = active and Theme.Card or Color3.fromRGB(0,0,0)
-        }, 0.15)
-        Tween(data.Label, {TextColor3 = active and Theme.White or Theme.Muted}, 0.15)
-        Tween(data.Icon,  {TextColor3 = active and Theme.White or Theme.Muted}, 0.15)
-        data.Stroke.Transparency = active and 0 or 1
-    end
-end
-
-local function createTabButton(name, iconText)
-    local active = (currentTabName == name)
-    local btn = Create("TextButton", {
-        Name             = "Tab_" .. name,
-        Size             = UDim2.new(1, 0, 0, 36),
-        BackgroundColor3 = active and Theme.Card or Color3.fromRGB(0, 0, 0),
-        BackgroundTransparency = active and 0 or 1,
-        BorderSizePixel  = 0,
-        AutoButtonColor  = false,
-        Text             = "",
-        Parent           = TabContainer,
-    })
-    RoundCorner(btn, 6)
-    
-    local stroke = Stroke(btn, active and Theme.Border or Color3.fromRGB(0,0,0), 1)
-    if not active then stroke.Transparency = 1 end
-
-    local icon = Create("TextLabel", {
-        Size                   = UDim2.new(0, 24, 1, 0),
-        Position               = UDim2.new(0, 8, 0, 0),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamBold,
-        Text                   = iconText or "•",
-        TextColor3             = active and Theme.White or Theme.Muted,
-        TextSize               = 13,
-        Parent                 = btn,
-    })
-
-    local lbl = Create("TextLabel", {
-        Size                   = UDim2.new(1, -36, 1, 0),
-        Position               = UDim2.new(0, 34, 0, 0),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamMedium,
-        Text                   = name,
-        TextColor3             = active and Theme.White or Theme.Muted,
-        TextSize               = 12,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = btn,
-    })
-
-    tabButtons[name] = {Btn = btn, Label = lbl, Icon = icon, Stroke = stroke}
-
-    btn.MouseButton1Click:Connect(function()
-        switchTab(name)
-    end)
-end
-
--- สร้างแท็บตามหมวดหมู่ชัดเจน (Requirement 6)
-local aimTab      = createTabContent("Aimbot", true) -- ให้เปิดแท็บแรกทันที
-local visualsTab  = createTabContent("Visuals", false)
-local movementTab = createTabContent("Movement", false)
-local combatTab   = createTabContent("Combat", false)
-local lootTab     = createTabContent("WarZ Loot", false)
-local configTab   = createTabContent("Configs", false)
-local creditsTab  = createTabContent("Credits", false)
-
-createTabButton("Aimbot", "🎯")
-createTabButton("Visuals", "👁️")
-createTabButton("Movement", "🏃")
-createTabButton("Combat", "⚡")
-createTabButton("WarZ Loot", "📦")
-createTabButton("Configs", "⚙️")
-createTabButton("Credits", "ℹ️")
-
--- ══════════════════ UI CARD BUILDERS ══════════════════
-local function createSectionHeader(parent, titleText)
-    local frame = Create("Frame", {
-        Size                   = UDim2.new(1, 0, 0, 24),
-        BackgroundTransparency = 1,
-        Parent                 = parent,
-    })
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamBold,
-        Text                   = string.upper(titleText),
-        TextColor3             = Theme.Muted,
-        TextSize               = 11,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = frame,
-    })
-    return frame
-end
-
-local function createToggleCard(parent, titleText, descText, configKey, onToggle)
-    local card = Create("Frame", {
-        Size             = UDim2.new(1, 0, 0, 56),
-        BackgroundColor3 = Theme.Card,
-        BorderSizePixel  = 0,
-        Parent           = parent,
-    })
-    RoundCorner(card, 8)
-    Stroke(card, Theme.Border, 1)
-
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -70, 0, 20),
-        Position               = UDim2.new(0, 14, 0, 9),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamBold,
-        Text                   = titleText,
-        TextColor3             = Theme.White,
-        TextSize               = 13,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
-
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -70, 0, 16),
-        Position               = UDim2.new(0, 14, 0, 29),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.Gotham,
-        Text                   = descText,
-        TextColor3             = Theme.Muted,
-        TextSize               = 11,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
-
-    local togBg = Create("Frame", {
-        Size             = UDim2.new(0, 42, 0, 22),
-        Position         = UDim2.new(1, -54, 0.5, -11),
-        BackgroundColor3 = Config[configKey] and Theme.TogOn or Theme.TogOff,
-        BorderSizePixel  = 0,
-        Parent           = card,
-    })
-    RoundCorner(togBg, 11)
-
-    local knob = Create("Frame", {
-        Size             = UDim2.new(0, 16, 0, 16),
-        Position         = Config[configKey] and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8),
-        BackgroundColor3 = Config[configKey] and Theme.TogOnKnob or Theme.TogOffKnob,
-        BorderSizePixel  = 0,
-        Parent           = togBg,
-    })
-    RoundCorner(knob, 8)
-
-    local clickBtn = Create("TextButton", {
-        Size                   = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Text                   = "",
-        Parent                 = togBg,
-    })
-
-    local function updateVisualState(newVal)
-        Tween(togBg, {BackgroundColor3 = newVal and Theme.TogOn or Theme.TogOff}, 0.18)
-        Tween(knob, {
-            Position = newVal and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8),
-            BackgroundColor3 = newVal and Theme.TogOnKnob or Theme.TogOffKnob
-        }, 0.18)
-    end
-
-    clickBtn.MouseButton1Click:Connect(function()
-        Config[configKey] = not Config[configKey]
-        updateVisualState(Config[configKey])
-        if onToggle then onToggle(Config[configKey]) end
-    end)
-
-    card.MouseEnter:Connect(function() Tween(card, {BackgroundColor3 = Theme.CardHover}, 0.15) end)
-    card.MouseLeave:Connect(function() Tween(card, {BackgroundColor3 = Theme.Card}, 0.15) end)
-
-    UIControls.toggles[configKey] = function()
-        updateVisualState(Config[configKey])
-    end
-
-    return card
-end
-
-local function createSliderCard(parent, titleText, descText, minVal, maxVal, configKey, suffix, onValChange)
-    local card = Create("Frame", {
-        Size             = UDim2.new(1, 0, 0, 68),
-        BackgroundColor3 = Theme.Card,
-        BorderSizePixel  = 0,
-        Parent           = parent,
-    })
-    RoundCorner(card, 8)
-    Stroke(card, Theme.Border, 1)
-
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -100, 0, 20),
-        Position               = UDim2.new(0, 14, 0, 8),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamBold,
-        Text                   = titleText,
-        TextColor3             = Theme.White,
-        TextSize               = 13,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
-
-    local currentVal = Config[configKey] or minVal
-    local valLabel = Create("TextLabel", {
-        Size                   = UDim2.new(0, 90, 0, 20),
-        Position               = UDim2.new(1, -104, 0, 8),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamBold,
-        Text                   = tostring(currentVal) .. " " .. (suffix or ""),
-        TextColor3             = Theme.White,
-        TextSize               = 12,
-        TextXAlignment         = Enum.TextXAlignment.Right,
-        Parent                 = card,
-    })
-
-    local track = Create("Frame", {
-        Size             = UDim2.new(1, -28, 0, 6),
-        Position         = UDim2.new(0, 14, 0, 42),
-        BackgroundColor3 = Color3.fromRGB(40, 40, 46),
-        BorderSizePixel  = 0,
-        Parent           = card,
-    })
-    RoundCorner(track, 3)
-
-    local pct = math.clamp((currentVal - minVal) / (maxVal - minVal), 0, 1)
-    local fill = Create("Frame", {
-        Size             = UDim2.new(pct, 0, 1, 0),
-        BackgroundColor3 = Theme.White,
-        BorderSizePixel  = 0,
-        Parent           = track,
-    })
-    RoundCorner(fill, 3)
-
-    local sliderBtn = Create("TextButton", {
-        Size                   = UDim2.new(1, 0, 1, 14),
-        Position               = UDim2.new(0, 0, 0, -7),
-        BackgroundTransparency = 1,
-        Text                   = "",
-        Parent                 = track,
-    })
-
-    local dragging = false
-    local function updateFromInput(input)
-        local posX = input.Position.X - track.AbsolutePosition.X
-        local ratio = math.clamp(posX / track.AbsoluteSize.X, 0, 1)
-        local val = math.floor(minVal + (maxVal - minVal) * ratio)
-        fill.Size = UDim2.new(ratio, 0, 1, 0)
-        valLabel.Text = tostring(val) .. " " .. (suffix or "")
-        Config[configKey] = val
-        if onValChange then onValChange(val) end
-    end
-
-    sliderBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            updateFromInput(input)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            updateFromInput(input)
-        end
-    end)
-
-    card.MouseEnter:Connect(function() Tween(card, {BackgroundColor3 = Theme.CardHover}, 0.15) end)
-    card.MouseLeave:Connect(function() Tween(card, {BackgroundColor3 = Theme.Card}, 0.15) end)
-
-    UIControls.sliders[configKey] = function()
-        local v = Config[configKey] or minVal
-        local r = math.clamp((v - minVal) / (maxVal - minVal), 0, 1)
-        fill.Size = UDim2.new(r, 0, 1, 0)
-        valLabel.Text = tostring(v) .. " " .. (suffix or "")
-    end
-
-    return card
-end
-
-local function createSelectorCard(parent, titleText, descText, options, configKey, onSelect)
-    local card = Create("Frame", {
-        Size             = UDim2.new(1, 0, 0, 58),
-        BackgroundColor3 = Theme.Card,
-        BorderSizePixel  = 0,
-        Parent           = parent,
-    })
-    RoundCorner(card, 8)
-    Stroke(card, Theme.Border, 1)
-
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -150, 0, 20),
-        Position               = UDim2.new(0, 14, 0, 9),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamBold,
-        Text                   = titleText,
-        TextColor3             = Theme.White,
-        TextSize               = 13,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
-
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -150, 0, 16),
-        Position               = UDim2.new(0, 14, 0, 29),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.Gotham,
-        Text                   = descText,
-        TextColor3             = Theme.Muted,
-        TextSize               = 11,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
-
-    local defaultText = options[1]
-    if type(Config[configKey]) == "number" then
-        defaultText = options[Config[configKey]] or options[1]
-    elseif type(Config[configKey]) == "string" and Config[configKey] ~= "" then
-        defaultText = Config[configKey]
-    end
-
-    local optionBtn = Create("TextButton", {
-        Size             = UDim2.new(0, 130, 0, 30),
-        Position         = UDim2.new(1, -144, 0.5, -15),
-        BackgroundColor3 = Theme.BadgeBg,
-        BorderSizePixel  = 0,
-        Font             = Enum.Font.GothamBold,
-        Text             = tostring(defaultText),
-        TextColor3       = Theme.White,
-        TextSize         = 11,
-        Parent           = card,
-    })
-    RoundCorner(optionBtn, 6)
-    Stroke(optionBtn, Theme.Border, 1)
-
-    local function cycleOption()
-        if type(Config[configKey]) == "number" then
-            local idx = (Config[configKey] or 1) + 1
-            if idx > #options then idx = 1 end
-            Config[configKey] = idx
-            optionBtn.Text = tostring(options[idx])
-            if onSelect then onSelect(idx) end
-        else
-            local cur = Config[configKey]
-            local curIdx = 1
-            for i, opt in ipairs(options) do
-                if opt == cur then curIdx = i break end
-            end
-            local nextIdx = curIdx + 1
-            if nextIdx > #options then nextIdx = 1 end
-            Config[configKey] = options[nextIdx]
-            optionBtn.Text = tostring(options[nextIdx])
-            if onSelect then onSelect(options[nextIdx]) end
-        end
-    end
-
-    optionBtn.MouseButton1Click:Connect(cycleOption)
-    card.MouseEnter:Connect(function() Tween(card, {BackgroundColor3 = Theme.CardHover}, 0.15) end)
-    card.MouseLeave:Connect(function() Tween(card, {BackgroundColor3 = Theme.Card}, 0.15) end)
-
-    UIControls.selectors[configKey] = function()
-        if type(Config[configKey]) == "number" then
-            optionBtn.Text = tostring(options[Config[configKey]] or options[1])
-        else
-            optionBtn.Text = tostring(Config[configKey] or options[1])
-        end
-    end
-
-    return {
-        Card = card,
-        SetOptions = function(newOpts)
-            options = newOpts
-            if type(Config[configKey]) == "number" then
-                optionBtn.Text = tostring(options[Config[configKey]] or options[1])
             else
-                optionBtn.Text = tostring(Config[configKey] or options[1])
+                -- หากเช็คแล้วไม่พบคีย์ใน GitHub ให้ลบเซฟ และเด้ง UI ให้ใส่คีย์ใหม่ทันที!
+                KeySystem.DeleteKeyLocal(cfg.SaveFileName)
+                pcall(function()
+                    StarterGui:SetCore("SendNotification", {
+                        Title = cfg.HubName or "Key System",
+                        Text = "คีย์ที่บันทึกไว้ถูกลบหรือไม่ถูกต้องแล้ว กรุณากรอกคีย์ใหม่",
+                        Duration = 4
+                    })
+                end)
             end
         end
+    end
+
+    -- 2. หากยังไม่มีคีย์เซฟ หรือคีย์ใน GitHub โดนลบ ให้เปิด UI ใส่คีย์
+    KeySystem.OpenUI(cfg, function()
+        if onSuccessCallback then
+            task.spawn(onSuccessCallback)
+        end
+        if KeySystem.CurrentKey then
+            KeySystem.StartWatchdog(KeySystem.CurrentKey, cfg)
+        end
+    end)
+end
+
+-- ========================================================
+-- WARZ MAIN SCRIPT EXECUTION
+-- ========================================================
+local function RunWarzScript()
+    if _G.WarzScriptRunning then
+        pcall(function()
+            if _G.WarzWindow and _G.WarzWindow.Destroy then _G.WarzWindow:Destroy() end
+            if _G.WarzFluent and _G.WarzFluent.Destroy then _G.WarzFluent:Destroy() end
+        end)
+    end
+    _G.WarzScriptRunning = true
+    _G.WarzStartFunction = RunWarzScript
+
+    local Fluent = loadstring(game:HttpGet("https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua"))()
+    local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua"))()
+    local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua"))()
+    _G.WarzFluent = Fluent
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+-- ========================================================
+-- CONFIGURATION
+-- ========================================================
+local ESP_Config = {
+    Enabled = true,
+    TeamCheck = false,
+    ShowBoxes = true,
+    ShowNames = true,
+    ShowDistance = true,
+    ShowHealth = true,
+    ShowTracers = false,
+    TracerOrigin = "Bottom",
+    ShowHighlight = true,
+
+    -- Colors
+    EnemyColor = Color3.fromRGB(255, 60, 60),
+    TeamColor = Color3.fromRGB(60, 180, 255),
+    HighlightOutline = Color3.fromRGB(255, 255, 255),
+
+    -- Sliders
+    MaxDistance = 1500,
+    TextSize = 13,
+    HighlightFillTransparency = 0.5,
+    HighlightOutlineTransparency = 0
+}
+
+local Combat_Config = {
+    -- Aimbot
+    AimbotEnabled = false,
+    AimMode = "Hard Lock", -- "Hard Lock", "Smooth Cam", "Mouse Delta"
+    AimKey1 = "Right Click", -- Key 1: "Right Click", "Left Click", "Left Alt", "Left Shift", "E", "C", "Always Active", "None"
+    AimKey2 = "Left Click",  -- Key 2: "Left Click", "Right Click", "Left Alt", "Left Shift", "E", "C", "Always Active", "None"
+    AimbotPart = "Head", -- "Head", "HumanoidRootPart"
+    Smoothness = 5, -- Higher = smoother & slower pull
+    MaxAimbotDistance = 600,
+    FOVRadius = 150,
+    ShowFOVCircle = true,
+    FOVColor = Color3.fromRGB(255, 255, 255),
+    WallCheck = true,
+
+    -- Visual Fixes & Bullet Tracers
+    NoMuzzleFlash = true,
+    BulletTracers = true -- Keep and enhance bullet tracer lines for recoil control
+}
+
+local Med_Config = {
+    Enabled = false,
+    HealthLossPercent = 10, -- Triggers when HP lost >= 10% (i.e. HP <= 90%)
+    Delay = 0.8, -- Cooldown delay between med cycles in seconds
+    KeyDelay = 0.08, -- Delay between key presses 3 -> 3 -> 1
+    LoopUntilFull = true -- Keep pumping until HP returns to 100%
+}
+
+local Item_Config = {
+    -- Item ESP
+    ESPEnabled = false,
+    ESPMaxDistance = 500,
+    TextSize = 13,
+    SelectedItems = {}, -- Multi-select: { ["Medkit"] = true, ... }
+
+    -- Category filters
+    FilterWeapons = true,
+    FilterAmmo = true,
+    FilterMedical = true,
+    FilterShields = true,
+    FilterArmor = true,
+    FilterAttachments = true,
+    FilterOther = true,
+
+    -- Item Highlight (Chams 3D)
+    HighlightEnabled = true,
+    HighlightFillTransparency = 0.4,
+    HighlightOutlineTransparency = 0,
+
+    -- Category Colors (Defaults matching user requirements)
+    ColorWeapons = Color3.fromRGB(0, 200, 255),       -- ฟ้า/น้ำเงิน (Cyan/Blue)
+    ColorMedical = Color3.fromRGB(50, 255, 100),      -- เขียว (Green)
+    ColorShields = Color3.fromRGB(255, 50, 50),       -- แดง (Red)
+    ColorArmor = Color3.fromRGB(180, 50, 255),        -- ม่วง (Purple)
+    ColorAmmo = Color3.fromRGB(255, 160, 20),         -- ส้ม (Orange)
+    ColorAttachments = Color3.fromRGB(255, 100, 200), -- ชมพู (Pink)
+    ColorOther = Color3.fromRGB(230, 230, 230),       -- ขาว (White)
+
+    -- Auto Loot
+    AutoLootEnabled = false,
+    AutoLootRadius = 25,
+    AutoLootDelay = 0.15,
+    AutoLootHoldTime = 1.1,
+    AutoLootFilterOnly = false
+}
+
+-- ========================================================
+-- DYNAMIC ITEM CATALOG LOADER
+-- ========================================================
+local ItemNamesList = {}
+pcall(function()
+    local cfg = require(ReplicatedStorage.Shared.Config)
+    local seen = {}
+    local function addItem(id, name)
+        local itemDisplayName = name or id
+        if not seen[itemDisplayName] and itemDisplayName and itemDisplayName ~= "" and itemDisplayName ~= "Unarmed" then
+            seen[itemDisplayName] = true
+            table.insert(ItemNamesList, itemDisplayName)
+        end
+    end
+
+    if type(cfg.Shop) == "table" then
+        for id, _ in pairs(cfg.Shop) do
+            local info = cfg.ShopItem(id)
+            addItem(id, info and info.Name or id)
+        end
+    end
+
+    for _, folderName in ipairs({"ViewGunMeshes", "ViewItemMeshes"}) do
+        local f = ReplicatedStorage:FindFirstChild(folderName)
+        if f then
+            for _, c in ipairs(f:GetChildren()) do
+                local info = cfg.ShopItem(c.Name)
+                addItem(c.Name, info and info.Name or c.Name)
+            end
+        end
+    end
+end)
+
+if #ItemNamesList == 0 then
+    ItemNamesList = {
+        ".308 Winchester", "ARMOR CITYSS2FTK", "ARMOR COMBAFTK", "ARMOR CORSAIR",
+        "ARMOR SPIDERMANFTK", "AW CITYSS2FTK", "BLASER R93", "Bandages",
+        "Bandages DX", "Binoculars", "Cobba shield", "Compact Scope",
+        "Custom Guerilla", "Custom Guerilla · มุมน้ำเงิน", "Custom Guerilla · มุมแดง",
+        "Flashlight", "HAND CORSAIR", "Hatchet", "Honey Badger", "Honey COMBAFTK",
+        "IMI TAR-21", "K. Style Helmet", "K. Style Helmet · มุมน้ำเงิน",
+        "K. Style Helmet · มุมแดง", "Katana", "Kobra", "LS90 SPIDERMANFTK",
+        "M134 COBBAFTK", "M134 SPIDERMANFTK", "MOTO CITYSS2FTK", "MOTO COBBAFTK",
+        "MOTO SPIDERRMANFTK", "Medkit", "Pistol laser", "Red Dot SP",
+        "Reflex Sight", "Riot Shield", "SCAR CITYSS2FTK", "SIG CORSAIR",
+        "SIG SAUER 556", "SMG-20", "SMG-40", "SP SPIDERMANFTK", "STANAG 30",
+        "STANAG 60", "STANAG C-Mag", "Swiss Arms Scope 8x", "UZI", "VSS CITYSS2FTK",
+        "VSS COBBAFTK", "VSS CORSAIR", "VSS VINTOREZ", "VSS-10", "Wood Shield Bar",
+        "น้ำฟื้น Stamina", "เบ็ดตกปลา", "เบ็ดใยทมิฬ", "เหยื่อ Chubby", "เหยื่อแมงมุมใยทมิฬ"
     }
 end
 
-local function createMultiSelectCard(parent, titleText, descText, options, configKey)
-    if type(Config[configKey]) ~= "table" then
-        Config[configKey] = {}
-    end
+table.sort(ItemNamesList, function(a, b)
+    return a:lower() < b:lower()
+end)
 
-    local card = Create("Frame", {
-        Size             = UDim2.new(1, 0, 0, 58),
-        BackgroundColor3 = Theme.Card,
-        BorderSizePixel  = 0,
-        Parent           = parent,
-        ClipsDescendants = true,
-    })
-    RoundCorner(card, 8)
-    Stroke(card, Theme.Border, 1)
+-- ========================================================
+-- WARZ CAMERA ENGINE LINK
+-- ========================================================
+local WarzCamMod = nil
 
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -150, 0, 20),
-        Position               = UDim2.new(0, 14, 0, 9),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamBold,
-        Text                   = titleText,
-        TextColor3             = Theme.White,
-        TextSize               = 13,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
-
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -150, 0, 16),
-        Position               = UDim2.new(0, 14, 0, 29),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.Gotham,
-        Text                   = descText,
-        TextColor3             = Theme.Muted,
-        TextSize               = 11,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
-
-    local expandBtn = Create("TextButton", {
-        Size             = UDim2.new(0, 130, 0, 30),
-        Position         = UDim2.new(1, -144, 0, 14),
-        BackgroundColor3 = Theme.BadgeBg,
-        BorderSizePixel  = 0,
-        Font             = Enum.Font.GothamBold,
-        Text             = "เลือกไอเทม (+)",
-        TextColor3       = Theme.White,
-        TextSize         = 11,
-        Parent           = card,
-    })
-    RoundCorner(expandBtn, 6)
-    Stroke(expandBtn, Theme.Border, 1)
-
-    local optionsContainer = Create("Frame", {
-        Size = UDim2.new(1, -28, 0, 0),
-        Position = UDim2.new(0, 14, 0, 58),
-        BackgroundTransparency = 1,
-        Parent = card,
-    })
-    local grid = Create("UIGridLayout", {
-        CellSize = UDim2.new(0.32, -4, 0, 26),
-        CellPadding = UDim2.new(0, 6, 0, 6),
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = optionsContainer,
-    })
-    
-    local isExpanded = false
-    expandBtn.MouseButton1Click:Connect(function()
-        isExpanded = not isExpanded
-        if isExpanded then
-            local rows = math.ceil(#options / 3)
-            local gridHeight = rows * 26 + (rows - 1) * 6
-            Tween(card, {Size = UDim2.new(1, 0, 0, 58 + gridHeight + 14)}, 0.2)
-            optionsContainer.Size = UDim2.new(1, -28, 0, gridHeight)
-            expandBtn.Text = "ปิด (-)"
-        else
-            Tween(card, {Size = UDim2.new(1, 0, 0, 58)}, 0.2)
-            expandBtn.Text = "เลือกไอเทม (+)"
+local function resolveWarzCamera()
+    if WarzCamMod then return WarzCamMod end
+    pcall(function()
+        local getlm = getloadedmodules or (syn and syn.getloadedmodules)
+        if getlm then
+            for _, m in ipairs(getlm()) do
+                if m.Name == "WarzCamera" then
+                    WarzCamMod = require(m)
+                    break
+                end
+            end
+        end
+        if not WarzCamMod and LocalPlayer:FindFirstChild("PlayerScripts") then
+            local client = LocalPlayer.PlayerScripts:FindFirstChild("Client")
+            local world = client and client:FindFirstChild("world")
+            local cam = world and world:FindFirstChild("WarzCamera")
+            if cam then
+                WarzCamMod = require(cam)
+            end
         end
     end)
+    return WarzCamMod
+end
 
-    for i, opt in ipairs(options) do
-        local isSelected = Config[configKey][opt] or false
-        local btn = Create("TextButton", {
-            BackgroundColor3 = isSelected and Theme.Green or Theme.BadgeBg,
-            BorderSizePixel  = 0,
-            Font             = Enum.Font.GothamMedium,
-            Text             = opt,
-            TextColor3       = isSelected and Theme.White or Theme.Muted,
-            TextSize         = 11,
-            Parent           = optionsContainer,
-        })
-        RoundCorner(btn, 4)
-        btn.MouseButton1Click:Connect(function()
-            Config[configKey][opt] = not Config[configKey][opt]
-            local state = Config[configKey][opt]
-            Tween(btn, {BackgroundColor3 = state and Theme.Green or Theme.BadgeBg}, 0.15)
-            Tween(btn, {TextColor3 = state and Theme.White or Theme.Muted}, 0.15)
-        end)
+task.spawn(function()
+    while not WarzCamMod do
+        resolveWarzCamera()
+        task.wait(1)
     end
-    
-    UIControls.multiSelectors = UIControls.multiSelectors or {}
-    UIControls.multiSelectors[configKey] = function()
-        for _, child in ipairs(optionsContainer:GetChildren()) do
-            if child:IsA("TextButton") then
-                local opt = child.Text
-                local state = Config[configKey][opt]
-                child.BackgroundColor3 = state and Theme.Green or Theme.BadgeBg
-                child.TextColor3 = state and Theme.White or Theme.Muted
+end)
+
+local function setCameraAngles(yaw, pitch)
+    local cam = resolveWarzCamera()
+    if cam then
+        local setup = debug.setupvalue or setupvalue
+        if setup then
+            local ok = pcall(function()
+                setup(cam.GetYaw, 1, yaw)
+                setup(cam.GetPitch, 1, pitch)
+            end)
+            if ok then return true end
+        end
+    end
+    return false
+end
+
+-- ========================================================
+-- HELPER FUNCTIONS & CATEGORIES
+-- ========================================================
+local function getItemCategory(itemId)
+    itemId = tostring(itemId or "")
+    local lowId = itemId:lower()
+
+    -- 1. Keyword fast classification (Guaranteed detection for weapons, meds, shields, armor, etc.)
+    -- Shields (Check first before Armor so shields aren't treated as general armor!)
+    if lowId:find("shield") or lowId:find("barricade") then
+        return "Shields", Item_Config.ColorShields or Color3.fromRGB(255, 50, 50)
+    -- Ammo
+    elseif lowId:find("stanag") or lowId:find("mag") or lowId:find("ammo") or lowId:find("drum") or lowId:find("clip") or lowId:find("bullet") or lowId:find("round") or lowId:find("shell") or lowId:find("5.56") or lowId:find("7.62") or lowId:find(".308") then
+        return "Ammo", Item_Config.ColorAmmo or Color3.fromRGB(255, 160, 20)
+    -- Medical
+    elseif lowId:find("bandage") or lowId:find("medkit") or lowId:find("painkiller") or lowId:find("blood") or lowId:find("syringe") or lowId:find("pill") or lowId:find("firstaid") or lowId:find("health") or lowId:find("stamina") or lowId:find("น้ำฟื้น") then
+        return "Medical", Item_Config.ColorMedical or Color3.fromRGB(50, 255, 100)
+    -- Weapons
+    elseif lowId:find("asr") or lowId:find("smg") or lowId:find("snp") or lowId:find("shotgun") or lowId:find("pistol") or lowId:find("rifle") or lowId:find("gun") or lowId:find("m4") or lowId:find("ak") or lowId:find("awm") or lowId:find("scar") or lowId:find("honey") or lowId:find("m134") or lowId:find("tar") or lowId:find("sig") or lowId:find("knife") or lowId:find("katana") or lowId:find("sword") or lowId:find("melee") or lowId:find("hatchet") or lowId:find("uzi") or lowId:find("blaser") or lowId:find("vss") then
+        return "Weapons", Item_Config.ColorWeapons or Color3.fromRGB(0, 200, 255)
+    -- Armor
+    elseif lowId:find("armor") or lowId:find("vest") or lowId:find("helmet") or lowId:find("backpack") or lowId:find("bag") or lowId:find("guerilla") or lowId:find("moto") or lowId:find("corsair") or lowId:find("combftk") then
+        return "Armor", Item_Config.ColorArmor or Color3.fromRGB(180, 50, 255)
+    -- Attachments
+    elseif lowId:find("optic") or lowId:find("scope") or lowId:find("sight") or lowId:find("laser") or lowId:find("suppressor") or lowId:find("silencer") or lowId:find("grip") or lowId:find("flash") or lowId:find("kobra") or lowId:find("red dot") or lowId:find("compact") or lowId:find("reflex") then
+        return "Attachments", Item_Config.ColorAttachments or Color3.fromRGB(255, 100, 200)
+    end
+
+    -- 2. Check ReplicatedStorage.Shared.Config
+    local success, cfg = pcall(function()
+        return require(ReplicatedStorage.Shared.Config)
+    end)
+    if success and cfg then
+        local shopItem = (cfg.ShopItem and cfg.ShopItem(itemId))
+            or (cfg.ShopItem and cfg.ShopItem(itemId:gsub(" ", "_")))
+            or (cfg.Shop and (cfg.Shop[itemId] or cfg.Shop[itemId:gsub(" ", "_")]))
+        if not shopItem and cfg.Shop then
+            for _, itemData in pairs(cfg.Shop) do
+                if type(itemData) == "table" and (itemData.Name == itemId or itemData.Id == itemId) then
+                    shopItem = itemData
+                    break
+                end
+            end
+        end
+
+        local kind = shopItem and shopItem.Kind or ""
+        local storeCat = shopItem and shopItem.StoreCat or ""
+
+        if kind == "Shield" or storeCat == "Shields" or tostring(shopItem and shopItem.Name or ""):lower():find("shield") then
+            return "Shields", Item_Config.ColorShields or Color3.fromRGB(255, 50, 50)
+        elseif kind == "ASR" or kind == "SMG" or kind == "SNP" or kind == "MELEE" or storeCat == "Weapons" then
+            return "Weapons", Item_Config.ColorWeapons or Color3.fromRGB(0, 200, 255)
+        elseif kind == "Magazine" or storeCat == "Magazines" or storeCat == "Ammo" then
+            return "Ammo", Item_Config.ColorAmmo or Color3.fromRGB(255, 160, 20)
+        elseif kind == "Medical" or storeCat == "Medical" then
+            return "Medical", Item_Config.ColorMedical or Color3.fromRGB(50, 255, 100)
+        elseif kind == "Armor" or kind == "Helmet" or kind == "Bag" or storeCat == "Armor" or storeCat == "Gears" then
+            return "Armor", Item_Config.ColorArmor or Color3.fromRGB(180, 50, 255)
+        elseif kind == "Optic" or kind == "Laser" or kind == "Attm" or storeCat == "Attachments" then
+            return "Attachments", Item_Config.ColorAttachments or Color3.fromRGB(255, 100, 200)
+        end
+    end
+
+    return "Other", Item_Config.ColorOther or Color3.fromRGB(230, 230, 230)
+end
+
+local function shouldDisplayItem(name, itemId, category)
+    -- Multi-select Item Names check
+    local hasSpecificSelection = false
+    for _, isSelected in pairs(Item_Config.SelectedItems) do
+        if isSelected then
+            hasSpecificSelection = true
+            break
+        end
+    end
+
+    if hasSpecificSelection then
+        local matched = false
+        if Item_Config.SelectedItems[name] or Item_Config.SelectedItems[itemId] then
+            matched = true
+        else
+            for selName, isSelected in pairs(Item_Config.SelectedItems) do
+                if isSelected then
+                    local lowSel = selName:lower()
+                    if name:lower() == lowSel or itemId:lower() == lowSel or name:lower():find(lowSel, 1, true) or itemId:lower():find(lowSel, 1, true) then
+                        matched = true
+                        break
+                    end
+                end
+            end
+        end
+        if not matched then
+            return false
+        end
+    end
+
+    -- Category filter
+    if category == "Weapons" and Item_Config.FilterWeapons then return true end
+    if category == "Ammo" and Item_Config.FilterAmmo then return true end
+    if category == "Medical" and Item_Config.FilterMedical then return true end
+    if category == "Shields" and Item_Config.FilterShields then return true end
+    if category == "Armor" and Item_Config.FilterArmor then return true end
+    if category == "Attachments" and Item_Config.FilterAttachments then return true end
+    if category == "Other" and Item_Config.FilterOther then return true end
+
+    return false
+end
+
+-- ========================================================
+-- PLAYER ESP ENGINE (DUAL LAYER: BILLBOARDGUI + DRAWING + CHAMS)
+-- ========================================================
+local ESP_Cache = {}
+
+local function getPlayerVisualModel(player)
+    if not player or player == LocalPlayer or player.UserId == LocalPlayer.UserId then return nil end
+    local pName = string.lower(player.Name)
+    local localName = string.lower(LocalPlayer.Name)
+    local hvl = workspace:FindFirstChild("HeroVisualsLocal")
+    if hvl then
+        for _, folder in ipairs(hvl:GetChildren()) do
+            local fName = string.lower(folder.Name)
+            local isLocal = (fName == localName) or (fName:find("_" .. localName, 1, true) ~= nil)
+            if not isLocal then
+                if fName == pName or fName:find("_" .. pName, 1, true) or fName:sub(-#pName) == pName then
+                    local liveAim = folder:FindFirstChild("LiveAim") or folder:FindFirstChildWhichIsA("Model")
+                    if liveAim then return liveAim end
+                end
             end
         end
     end
-    
-    return card
+    return player.Character
 end
 
-local function createActionCard(parent, titleText, descText, btnText, bgColor, textColor, onAction)
-    local card = Create("Frame", {
-        Size             = UDim2.new(1, 0, 0, 56),
-        BackgroundColor3 = Theme.Card,
-        BorderSizePixel  = 0,
-        Parent           = parent,
+-- Proxy object wrapper that provides .Position and delegates methods to underlying instance
+local function makeAimTarget(pos, inst)
+    return setmetatable({
+        Position = pos,
+        Instance = inst
+    }, {
+        __index = function(self, k)
+            if k == "Position" then return pos end
+            if inst then
+                local v = inst[k]
+                if typeof(v) == "function" then
+                    return function(_, ...)
+                        return v(inst, ...)
+                    end
+                end
+                return v
+            end
+            return nil
+        end
     })
-    RoundCorner(card, 8)
-    Stroke(card, Theme.Border, 1)
-
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -125, 0, 20),
-        Position               = UDim2.new(0, 14, 0, 9),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamBold,
-        Text                   = titleText,
-        TextColor3             = Theme.White,
-        TextSize               = 13,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
-
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -125, 0, 16),
-        Position               = UDim2.new(0, 14, 0, 29),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.Gotham,
-        Text                   = descText,
-        TextColor3             = Theme.Muted,
-        TextSize               = 11,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
-
-    local actionBtn = Create("TextButton", {
-        Size             = UDim2.new(0, 105, 0, 30),
-        Position         = UDim2.new(1, -119, 0.5, -15),
-        BackgroundColor3 = bgColor or Theme.White,
-        BorderSizePixel  = 0,
-        Font             = Enum.Font.GothamBold,
-        Text             = btnText,
-        TextColor3       = textColor or Theme.DarkText,
-        TextSize         = 11,
-        Parent           = card,
-    })
-    RoundCorner(actionBtn, 6)
-
-    actionBtn.MouseButton1Click:Connect(function()
-        Tween(actionBtn, {BackgroundTransparency = 0.3}, 0.1)
-        task_wait(0.1)
-        Tween(actionBtn, {BackgroundTransparency = 0}, 0.1)
-        if onAction then onAction() end
-    end)
-
-    card.MouseEnter:Connect(function() Tween(card, {BackgroundColor3 = Theme.CardHover}, 0.15) end)
-    card.MouseLeave:Connect(function() Tween(card, {BackgroundColor3 = Theme.Card}, 0.15) end)
-
-    return card
 end
 
-local function createInputCard(parent, titleText, descText, placeholder, defaultText, onTextChange)
-    local card = Create("Frame", {
-        Size             = UDim2.new(1, 0, 0, 62),
-        BackgroundColor3 = Theme.Card,
-        BorderSizePixel  = 0,
-        Parent           = parent,
-    })
-    RoundCorner(card, 8)
-    Stroke(card, Theme.Border, 1)
+local function getPlayerAimPart(player, partName)
+    if not player then return nil end
+    partName = partName or Combat_Config.AimbotPart or "Head"
 
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -160, 0, 20),
-        Position               = UDim2.new(0, 14, 0, 11),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamBold,
-        Text                   = titleText,
-        TextColor3             = Theme.White,
-        TextSize               = 13,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
+    local char = player.Character
+    local visualModel = getPlayerVisualModel(player)
+    local targetModel = visualModel or char
+    if not targetModel or not targetModel:IsDescendantOf(workspace) then return nil end
 
-    Create("TextLabel", {
-        Size                   = UDim2.new(1, -160, 0, 16),
-        Position               = UDim2.new(0, 14, 0, 31),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.Gotham,
-        Text                   = descText,
-        TextColor3             = Theme.Muted,
-        TextSize               = 11,
-        TextXAlignment         = Enum.TextXAlignment.Left,
-        Parent                 = card,
-    })
+    local hrp = (char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char.PrimaryPart))
+        or (visualModel and (visualModel:FindFirstChild("RootPart") or visualModel:FindFirstChildWhichIsA("BasePart")))
 
-    local inputFrame = Create("Frame", {
-        Size             = UDim2.new(0, 140, 0, 32),
-        Position         = UDim2.new(1, -154, 0.5, -16),
-        BackgroundColor3 = Theme.BadgeBg,
-        BorderSizePixel  = 0,
-        Parent           = card,
-    })
-    RoundCorner(inputFrame, 6)
-    Stroke(inputFrame, Theme.Border, 1)
-
-    local textBox = Create("TextBox", {
-        Size                   = UDim2.new(1, -10, 1, 0),
-        Position               = UDim2.new(0, 5, 0, 0),
-        BackgroundTransparency = 1,
-        Font                   = Enum.Font.GothamMedium,
-        Text                   = defaultText or "",
-        PlaceholderText        = placeholder or "พิมพ์ที่นี่...",
-        TextColor3             = Theme.White,
-        PlaceholderColor3      = Theme.Muted,
-        TextSize               = 12,
-        ClearTextOnFocus       = false,
-        Parent                 = inputFrame,
-    })
-
-    textBox.FocusLost:Connect(function()
-        if onTextChange then onTextChange(textBox.Text) end
-    end)
-
-    card.MouseEnter:Connect(function() Tween(card, {BackgroundColor3 = Theme.CardHover}, 0.15) end)
-    card.MouseLeave:Connect(function() Tween(card, {BackgroundColor3 = Theme.Card}, 0.15) end)
-
-    return {Card = card, TextBox = textBox}
-end
-
--- Sync function: updates all UI cards whenever a config is loaded!
-syncAllUIElements = function()
-    for _, fn in pairs(UIControls.toggles) do pcall(fn) end
-    for _, fn in pairs(UIControls.sliders) do pcall(fn) end
-    for _, fn in pairs(UIControls.selectors) do pcall(fn) end
-    if UIControls.multiSelectors then
-        for _, fn in pairs(UIControls.multiSelectors) do pcall(fn) end
+    -- 1. Search for Skinned Mesh Bones first (WarZ character rigs use Bip01 bones which track prone/crouch animation directly)
+    if partName == "Head" then
+        for _, d in ipairs(targetModel:GetDescendants()) do
+            if d:IsA("Bone") and (d.Name == "Bip01_Head" or d.Name:lower():find("head")) then
+                local ok, cf = pcall(function() return d.TransformedWorldCFrame end)
+                if ok and cf and cf.Position then
+                    return makeAimTarget(cf.Position, d)
+                end
+                local ok2, wp = pcall(function() return d.WorldPosition end)
+                if ok2 and wp then
+                    return makeAimTarget(wp, d)
+                end
+            end
+        end
+    else
+        for _, d in ipairs(targetModel:GetDescendants()) do
+            if d:IsA("Bone") and (d.Name:find("Spine") or d.Name:find("Pelvis") or d.Name:lower():find("torso")) then
+                local ok, cf = pcall(function() return d.TransformedWorldCFrame end)
+                if ok and cf and cf.Position then
+                    return makeAimTarget(cf.Position, d)
+                end
+                local ok2, wp = pcall(function() return d.WorldPosition end)
+                if ok2 and wp then
+                    return makeAimTarget(wp, d)
+                end
+            end
+        end
     end
-    ActiveConfigBadgeLabel.Text = "📁 " .. tostring(currentActiveConfigName)
-end
 
--- ══════════════════ FLOATING REAL-TIME TARGET HEALTH HUD (Requirement 2) ══════════════════
-local TargetHudFrame = Create("Frame", {
-    Name             = "TargetHudFrame",
-    Size             = UDim2.new(0, 270, 0, 70),
-    AnchorPoint      = Vector2.new(0.5, 0),
-    Position         = UDim2.new(0.5, 0, 0.74, 0),
-    BackgroundColor3 = Color3.fromRGB(16, 16, 20),
-    BorderSizePixel  = 0,
-    Visible          = false,
-    Parent           = ScreenGui,
-})
-RoundCorner(TargetHudFrame, 8)
-Stroke(TargetHudFrame, Theme.Border, 1)
-
-local TargetHudIcon = Create("TextLabel", {
-    Size                   = UDim2.new(0, 32, 0, 32),
-    Position               = UDim2.new(0, 10, 0, 10),
-    BackgroundColor3       = Theme.BadgeBg,
-    Font                   = Enum.Font.GothamBold,
-    Text                   = "🎯",
-    TextColor3             = Theme.White,
-    TextSize               = 16,
-    Parent                 = TargetHudFrame,
-})
-RoundCorner(TargetHudIcon, 6)
-Stroke(TargetHudIcon, Theme.Border, 1)
-
-local TargetHudName = Create("TextLabel", {
-    Size                   = UDim2.new(0, 140, 0, 18),
-    Position               = UDim2.new(0, 50, 0, 8),
-    BackgroundTransparency = 1,
-    Font                   = Enum.Font.GothamBold,
-    Text                   = "Enemy: Target",
-    TextColor3             = Theme.White,
-    TextSize               = 13,
-    TextXAlignment         = Enum.TextXAlignment.Left,
-    Parent                 = TargetHudFrame,
-})
-
-local TargetHudDist = Create("TextLabel", {
-    Size                   = UDim2.new(0, 65, 0, 18),
-    Position               = UDim2.new(1, -75, 0, 8),
-    BackgroundTransparency = 1,
-    Font                   = Enum.Font.GothamMedium,
-    Text                   = "45m",
-    TextColor3             = Theme.Muted,
-    TextSize               = 11,
-    TextXAlignment         = Enum.TextXAlignment.Right,
-    Parent                 = TargetHudFrame,
-})
-
-local TargetHudHolding = Create("TextLabel", {
-    Size                   = UDim2.new(1, -60, 0, 14),
-    Position               = UDim2.new(0, 50, 0, 27),
-    BackgroundTransparency = 1,
-    Font                   = Enum.Font.Gotham,
-    Text                   = "อาวุธ: -",
-    TextColor3             = Theme.WhiteSoft,
-    TextSize               = 10,
-    TextXAlignment         = Enum.TextXAlignment.Left,
-    Parent                 = TargetHudFrame,
-})
-
-local TargetHealthTrack = Create("Frame", {
-    Size             = UDim2.new(1, -20, 0, 8),
-    Position         = UDim2.new(0, 10, 1, -18),
-    BackgroundColor3 = Color3.fromRGB(35, 35, 42),
-    BorderSizePixel  = 0,
-    Parent           = TargetHudFrame,
-})
-RoundCorner(TargetHealthTrack, 4)
-
-local TargetHealthFill = Create("Frame", {
-    Size             = UDim2.new(1, 0, 1, 0),
-    BackgroundColor3 = Theme.Green,
-    BorderSizePixel  = 0,
-    Parent           = TargetHealthTrack,
-})
-RoundCorner(TargetHealthFill, 4)
-
-local TargetHealthText = Create("TextLabel", {
-    Size                   = UDim2.new(0, 70, 0, 14),
-    Position               = UDim2.new(1, -80, 0, 27),
-    BackgroundTransparency = 1,
-    Font                   = Enum.Font.GothamBold,
-    Text                   = "100/100 HP",
-    TextColor3             = Theme.Green,
-    TextSize               = 10,
-    TextXAlignment         = Enum.TextXAlignment.Right,
-    Parent                 = TargetHudFrame,
-})
-
--- ══════════════════ FOV CIRCLE (Requirement 4) ══════════════════
-local fovFrame = Create("Frame", {
-    Name                   = "FOVCircle",
-    AnchorPoint            = Vector2.new(0.5, 0.5),
-    Position               = UDim2.new(0.5, 0, 0.5, 0),
-    Size                   = UDim2.new(0, Config.fovRadius * 2, 0, Config.fovRadius * 2),
-    BackgroundTransparency = 1,
-    Visible                = false,
-    Parent                 = ScreenGui,
-})
-RoundCorner(fovFrame, 9999)
-Stroke(fovFrame, Color3.fromRGB(255, 255, 255), 1.5)
-
--- ══════════════════ WARNING ALERT (BACK ALERT 20M) ══════════════════
-local AlertFrame = Create("Frame", {
-    Name             = "AlertFrame",
-    AnchorPoint      = Vector2.new(0.5, 0),
-    Position         = UDim2.new(0.5, 0, 0.15, 0),
-    Size             = UDim2.new(0, 360, 0, 40),
-    BackgroundColor3 = Color3.fromRGB(180, 20, 20),
-    BorderSizePixel  = 0,
-    Visible          = false,
-    Parent           = ScreenGui,
-})
-RoundCorner(AlertFrame, 6)
-
-local AlertText = Create("TextLabel", {
-    Size                   = UDim2.new(1, 0, 1, 0),
-    BackgroundTransparency = 1,
-    Font                   = Enum.Font.GothamBold,
-    Text                   = "⚠️ WARNING: ENEMY BEHIND YOU!",
-    TextColor3             = Theme.White,
-    TextSize               = 13,
-    Parent                 = AlertFrame,
-})
-
--- ══════════════════ AIMBOT & TARGET CALCULATION ENGINE ══════════════════
-local function getRootPart(character)
-    if not character then return nil end
-    return character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Head") or character.PrimaryPart
-end
-
-local function getTargetPart(character)
-    if not character then return nil end
-    local partName = targetParts[Config.targetPartIndex] or "Head"
-    return character:FindFirstChild(partName) or getRootPart(character)
-end
-
-local function isEnemy(player)
-    if not Config.teamCheckEnabled then return true end
-    if player.Team and LocalPlayer and LocalPlayer.Team and player.Team == LocalPlayer.Team then
-        return false
+    -- 2. BasePart fallback with stance-aware positioning
+    local basePart = nil
+    if partName == "Head" then
+        basePart = targetModel:FindFirstChild("Head") or targetModel:FindFirstChild("head")
+            or (char and (char:FindFirstChild("Head") or char:FindFirstChild("head")))
     end
-    return true
-end
-
-local function isVisible(targetPart)
-    if not Config.wallCheckEnabled then return true end
-    if not Camera then return true end
-    local origin = Camera.CFrame.Position
-    local destination = targetPart.Position
-    local direction = destination - origin
-
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    
-    local ignoreList = {Camera}
-    if LocalPlayer and LocalPlayer.Character then table.insert(ignoreList, LocalPlayer.Character) end
-    raycastParams.FilterDescendantsInstances = ignoreList
-
-    local result = workspace:Raycast(origin, direction, raycastParams)
-    if result then
-        if result.Instance:IsDescendantOf(targetPart.Parent) then return true end
-        return false
+    if not basePart then
+        basePart = targetModel:FindFirstChild(partName)
+            or targetModel:FindFirstChild("UpperTorso")
+            or targetModel:FindFirstChild("Torso")
+            or hrp
+            or (char and (char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso") or char.PrimaryPart))
     end
-    return true
+
+    if basePart and basePart:IsA("BasePart") then
+        local rawPos = basePart.Position
+        local stance = player:GetAttribute("CSGO_Stance") or (char and char:GetAttribute("CSGO_Stance")) or ""
+
+        -- If target is prone and we only have static BasePart, calculate true ground position
+        if stance:find("PRONE") or (hrp and (rawPos.Y - hrp.Position.Y) < -0.5) then
+            if hrp then
+                local look = hrp.CFrame.LookVector
+                -- Prone head is lowered to ~1 stud above ground and extends forward
+                local proneHeadPos = hrp.Position - Vector3.new(0, 2.2, 0) + look * (partName == "Head" and 1.8 or 0.2)
+                return makeAimTarget(proneHeadPos, basePart)
+            end
+        -- If target is crouching
+        elseif stance:find("CROUCH") or (hrp and (rawPos.Y - hrp.Position.Y) < 0.6) then
+            if hrp and partName == "Head" then
+                local crouchHeadPos = hrp.Position + Vector3.new(0, 0.4, 0)
+                return makeAimTarget(crouchHeadPos, basePart)
+            end
+        end
+
+        return basePart
+    end
+
+    return nil
 end
 
-local function isValidTarget(player)
-    if not player or player == LocalPlayer or not player.Character then return false end
-    if not isEnemy(player) then return false end
-    
-    local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
-    local targetPart = getTargetPart(player.Character)
-    if humanoid and humanoid.Health > 0 and targetPart then
+local function isTeammate(player)
+    if not ESP_Config.TeamCheck then return false end
+    if player.Team and LocalPlayer.Team and player.Team == LocalPlayer.Team then
         return true
     end
     return false
 end
 
-local function getClosestPlayerToMouse()
-    local closestPlayer = nil
-    local radius = Config.fovRadius
-    local shortestDistance = Config.fovEnabled and radius or 999999
-    local mousePos = UserInputService:GetMouseLocation()
+local function getESPColor(player)
+    local col = isTeammate(player) and ESP_Config.TeamColor or ESP_Config.EnemyColor
+    if typeof(col) ~= "Color3" then
+        return isTeammate(player) and Color3.fromRGB(60, 180, 255) or Color3.fromRGB(255, 60, 60)
+    end
+    return col
+end
 
-    for _, player in pairs(Players:GetPlayers()) do
-        if isValidTarget(player) then
-            local targetPart = getTargetPart(player.Character)
-            if targetPart and isVisible(targetPart) and Camera then
-                local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
-                if onScreen then
-                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - mousePos).Magnitude
-                    if distance < shortestDistance then
-                        shortestDistance = distance
-                        closestPlayer = player
+local function hideDrawing(esp)
+    if not esp then return end
+    pcall(function()
+        if esp.BoxBillboard then esp.BoxBillboard.Enabled = false end
+        if esp.InfoBillboard then esp.InfoBillboard.Enabled = false end
+        if esp.Highlight then esp.Highlight.Enabled = false end
+        if esp.Tracer then esp.Tracer.Visible = false end
+    end)
+end
+
+local function createESP(player)
+    if not player or player == LocalPlayer or player.UserId == LocalPlayer.UserId then return end
+    if ESP_Cache[player] then return end
+
+    local drawings = {
+        BoxBillboard = nil,
+        BoxFrame = nil,
+        BoxStroke = nil,
+
+        InfoBillboard = nil,
+        NameLabel = nil,
+        DistLabel = nil,
+        HpBg = nil,
+        HpFill = nil,
+
+        Highlight = nil,
+        Tracer = nil
+    }
+
+    -- 1. Native Roblox 2D Box BillboardGui (Locked 100% to 3D character, zero jitter, zero lag)
+    pcall(function()
+        local boxBbg = Instance.new("BillboardGui")
+        boxBbg.Name = "WarZ_ESP_Box"
+        boxBbg.AlwaysOnTop = true
+        boxBbg.Size = UDim2.new(4.0, 0, 5.8, 0)
+        boxBbg.StudsOffset = Vector3.new(0, 0, 0)
+        boxBbg.ClipsDescendants = false
+        boxBbg.Enabled = false
+
+        local boxFrame = Instance.new("Frame", boxBbg)
+        boxFrame.Name = "BoxFrame"
+        boxFrame.Size = UDim2.new(1, 0, 1, 0)
+        boxFrame.BackgroundTransparency = 1
+
+        local boxStroke = Instance.new("UIStroke", boxFrame)
+        boxStroke.Color = getESPColor(player)
+        boxStroke.Thickness = 1.6
+
+        drawings.BoxBillboard = boxBbg
+        drawings.BoxFrame = boxFrame
+        drawings.BoxStroke = boxStroke
+    end)
+
+    -- 2. Native Roblox Info BillboardGui (Crisp Name, Distance & Health Bar above player head)
+    pcall(function()
+        local infoBbg = Instance.new("BillboardGui")
+        infoBbg.Name = "WarZ_ESP_Info"
+        infoBbg.AlwaysOnTop = true
+        infoBbg.Size = UDim2.new(0, 160, 0, 48)
+        infoBbg.StudsOffset = Vector3.new(0, 1.4, 0)
+        infoBbg.ClipsDescendants = false
+        infoBbg.Enabled = false
+
+        local nameLabel = Instance.new("TextLabel", infoBbg)
+        nameLabel.Name = "NameLabel"
+        nameLabel.Size = UDim2.new(1, 0, 0, 18)
+        nameLabel.Position = UDim2.new(0, 0, 0, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = player.DisplayName or player.Name
+        nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        nameLabel.TextStrokeTransparency = 0
+        nameLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        nameLabel.TextSize = ESP_Config.TextSize or 13
+        nameLabel.Font = Enum.Font.SourceSansBold
+
+        local distLabel = Instance.new("TextLabel", infoBbg)
+        distLabel.Name = "DistLabel"
+        distLabel.Size = UDim2.new(1, 0, 0, 14)
+        distLabel.Position = UDim2.new(0, 0, 0, 17)
+        distLabel.BackgroundTransparency = 1
+        distLabel.Text = "[0 m]"
+        distLabel.TextColor3 = Color3.fromRGB(225, 225, 225)
+        distLabel.TextStrokeTransparency = 0
+        distLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+        distLabel.TextSize = math.max(10, (ESP_Config.TextSize or 13) - 1)
+        distLabel.Font = Enum.Font.SourceSans
+
+        local hpBg = Instance.new("Frame", infoBbg)
+        hpBg.Name = "HpBg"
+        hpBg.Size = UDim2.new(0, 80, 0, 4)
+        hpBg.Position = UDim2.new(0.5, -40, 0, 33)
+        hpBg.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+        hpBg.BorderSizePixel = 0
+
+        local hpStroke = Instance.new("UIStroke", hpBg)
+        hpStroke.Color = Color3.fromRGB(0, 0, 0)
+        hpStroke.Thickness = 1
+
+        local hpFill = Instance.new("Frame", hpBg)
+        hpFill.Name = "HpFill"
+        hpFill.Size = UDim2.new(1, 0, 1, 0)
+        hpFill.Position = UDim2.new(0, 0, 0, 0)
+        hpFill.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        hpFill.BorderSizePixel = 0
+
+        drawings.InfoBillboard = infoBbg
+        drawings.NameLabel = nameLabel
+        drawings.DistLabel = distLabel
+        drawings.HpBg = hpBg
+        drawings.HpFill = hpFill
+    end)
+
+    -- 3. Drawing API Tracer Line
+    pcall(function()
+        if Drawing and Drawing.new then
+            local tr = Drawing.new("Line")
+            tr.Visible = false
+            tr.Thickness = 1
+            drawings.Tracer = tr
+        end
+    end)
+
+    ESP_Cache[player] = drawings
+end
+
+local function removeESP(player)
+    local data = ESP_Cache[player]
+    if data then
+        hideDrawing(data)
+        if data.BoxBillboard then
+            pcall(function() data.BoxBillboard:Destroy() end)
+        end
+        if data.InfoBillboard then
+            pcall(function() data.InfoBillboard:Destroy() end)
+        end
+        if data.Highlight then
+            pcall(function() data.Highlight:Destroy() end)
+        end
+        for name, item in pairs(data) do
+            if typeof(item) == "table" and item.Remove then
+                pcall(function() item:Remove() end)
+            end
+        end
+        ESP_Cache[player] = nil
+    end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+    if p ~= LocalPlayer then
+        createESP(p)
+    end
+end
+
+Players.PlayerAdded:Connect(createESP)
+Players.PlayerRemoving:Connect(removeESP)
+
+-- ========================================================
+-- ITEM ESP ENGINE
+-- ========================================================
+local Item_ESP_Cache = {}
+
+local function getLootPosition(item)
+    if not item then return nil end
+    local ok, piv = pcall(function() return item:GetPivot().Position end)
+    if ok and piv then return piv end
+    if item:IsA("Model") then
+        local primary = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart", true)
+        return primary and primary.Position
+    elseif item:IsA("BasePart") then
+        return item.Position
+    end
+    return nil
+end
+
+local function removeItemESP(item)
+    local data = Item_ESP_Cache[item]
+    if data then
+        pcall(function()
+            if typeof(data) == "table" then
+                if data.Gui then
+                    data.Gui:Destroy()
+                end
+                if data.Highlight then
+                    data.Highlight:Destroy()
+                end
+                if data.Remove then
+                    data:Remove()
+                end
+            elseif typeof(data) == "userdata" and data.Remove then
+                data:Remove()
+            end
+        end)
+        Item_ESP_Cache[item] = nil
+    end
+end
+
+local WarzLootFolder = workspace:FindFirstChild("WarzLoot")
+if WarzLootFolder then
+    WarzLootFolder.ChildRemoved:Connect(removeItemESP)
+end
+
+workspace.ChildAdded:Connect(function(child)
+    if child.Name == "WarzLoot" then
+        WarzLootFolder = child
+        child.ChildRemoved:Connect(removeItemESP)
+    end
+end)
+
+-- ========================================================
+-- ========================================================
+-- AIMBOT & FOV CIRCLE (HYBRID NATIVE GUI + DRAWING API)
+-- ========================================================
+local FOVScreenGui = nil
+local FOVCircleFrame = nil
+local FOVCircleStroke = nil
+local FOVCircleDrawing = nil
+
+-- 1. Drawing API Circle (Fallback / primary if supported by executor)
+pcall(function()
+    if Drawing and Drawing.new then
+        local c = Drawing.new("Circle")
+        c.Visible = false
+        c.Radius = Combat_Config.FOVRadius or 150
+        c.Color = Combat_Config.FOVColor or Color3.fromRGB(255, 255, 255)
+        c.Thickness = 1.5
+        c.Filled = false
+        FOVCircleDrawing = c
+    end
+end)
+
+-- 2. Native Roblox ScreenGui Circle (Guaranteed rendering on client)
+local function getSafeGuiParent()
+    if gethui then
+        local ok, h = pcall(gethui)
+        if ok and h then return h end
+    end
+    local pGui = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer:WaitForChild("PlayerGui", 5)
+    return pGui
+end
+
+local function setupFOVScreenGui()
+    if FOVScreenGui and FOVScreenGui.Parent and FOVCircleFrame and FOVCircleStroke then
+        return
+    end
+
+    pcall(function()
+        if FOVScreenGui then FOVScreenGui:Destroy() end
+    end)
+
+    pcall(function()
+        local parentTarget = getSafeGuiParent()
+        local sg = Instance.new("ScreenGui")
+        sg.Name = "WarZ_Unique_FOV"
+        sg.ResetOnSpawn = false
+        sg.IgnoreGuiInset = true
+        sg.DisplayOrder = 999999
+        sg.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        sg.Parent = parentTarget
+
+        local fovFrame = Instance.new("Frame", sg)
+        fovFrame.Name = "FOVCircle"
+        fovFrame.BackgroundTransparency = 1
+        fovFrame.Visible = false
+        fovFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+
+        local stroke = Instance.new("UIStroke", fovFrame)
+        stroke.Color = Combat_Config.FOVColor or Color3.fromRGB(255, 255, 255)
+        stroke.Thickness = 1.5
+        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+        local corner = Instance.new("UICorner", fovFrame)
+        corner.CornerRadius = UDim.new(1, 0)
+
+        FOVScreenGui = sg
+        FOVCircleFrame = fovFrame
+        FOVCircleStroke = stroke
+    end)
+end
+
+setupFOVScreenGui()
+LocalPlayer.CharacterAdded:Connect(function()
+    task.wait(0.5)
+    setupFOVScreenGui()
+end)
+
+local aimKey1Held = false
+local aimKey2Held = false
+
+local function isKeyMatching(input, keySetting)
+    if not keySetting or keySetting == "None" then return false end
+    if (keySetting == "Right Click" or keySetting:find("Right Click")) and input.UserInputType == Enum.UserInputType.MouseButton2 then
+        return true
+    elseif (keySetting == "Left Click" or keySetting:find("Left Click")) and input.UserInputType == Enum.UserInputType.MouseButton1 then
+        return true
+    elseif keySetting == "Left Alt" and input.KeyCode == Enum.KeyCode.LeftAlt then
+        return true
+    elseif keySetting == "Left Shift" and input.KeyCode == Enum.KeyCode.LeftShift then
+        return true
+    elseif keySetting == "E" and input.KeyCode == Enum.KeyCode.E then
+        return true
+    elseif keySetting == "C" and input.KeyCode == Enum.KeyCode.C then
+        return true
+    end
+    return false
+end
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if isKeyMatching(input, Combat_Config.AimKey1) then
+        aimKey1Held = true
+    end
+    if isKeyMatching(input, Combat_Config.AimKey2) then
+        aimKey2Held = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if isKeyMatching(input, Combat_Config.AimKey1) then
+        aimKey1Held = false
+    end
+    if isKeyMatching(input, Combat_Config.AimKey2) then
+        aimKey2Held = false
+    end
+end)
+
+local function isKeyActive(keySetting, heldFlag)
+    if not keySetting or keySetting == "None" then return false end
+    if keySetting == "Always Active" then return true end
+
+    local myChar = LocalPlayer.Character
+    if keySetting == "Right Click" or keySetting:find("Right Click") then
+        return heldFlag 
+            or UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
+            or (myChar and myChar:GetAttribute("WarzAim") == true)
+    elseif keySetting == "Left Click" or keySetting:find("Left Click") then
+        return heldFlag or UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+    elseif keySetting == "Left Alt" then
+        return heldFlag or UserInputService:IsKeyDown(Enum.KeyCode.LeftAlt)
+    elseif keySetting == "Left Shift" then
+        return heldFlag or UserInputService:IsKeyDown(Enum.KeyCode.LeftShift)
+    elseif keySetting == "E" then
+        return heldFlag or UserInputService:IsKeyDown(Enum.KeyCode.E)
+    elseif keySetting == "C" then
+        return heldFlag or UserInputService:IsKeyDown(Enum.KeyCode.C)
+    end
+    return false
+end
+
+local function isAimKeyDown()
+    if not Combat_Config.AimbotEnabled then return false end
+    if Combat_Config.AimKey1 == "Always Active" or Combat_Config.AimKey2 == "Always Active" then
+        return true
+    end
+    local active1 = isKeyActive(Combat_Config.AimKey1, aimKey1Held)
+    local active2 = isKeyActive(Combat_Config.AimKey2, aimKey2Held)
+    return active1 or active2
+end
+
+-- Ensure map geometry has CanQuery enabled so raycasts never phase through walls/buildings
+task.spawn(function()
+    while true do
+        pcall(function()
+            for _, child in ipairs(workspace:GetChildren()) do
+                if child.Name:find("Map") or child.Name:find("Level") or child.Name:find("Barricade") or child.Name == "Targets" then
+                    for _, part in ipairs(child:GetDescendants()) do
+                        if part:IsA("BasePart") and not part.CanQuery and not part:IsDescendantOf(LocalPlayer.Character) then
+                            part.CanQuery = true
+                        end
+                    end
+                end
+            end
+        end)
+        task.wait(4)
+    end
+end)
+
+local function isSingleRayClear(fromPos, toPos, targetChar)
+    local dir = toPos - fromPos
+    local totalDist = dir.Magnitude
+    if totalDist < 0.25 then return true end
+
+    local dirUnit = dir.Unit
+    local curOrigin = fromPos
+    local remDist = totalDist
+
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    rayParams.IgnoreWater = true
+
+    local myChar = LocalPlayer.Character
+    local ignoreList = {
+        myChar,
+        workspace:FindFirstChild("WarzFx"),
+        workspace:FindFirstChild("WarzLoot"),
+        workspace:FindFirstChild("Body")
+    }
+
+    for _ = 1, 6 do
+        rayParams.FilterDescendantsInstances = ignoreList
+        local hit = workspace:Raycast(curOrigin, dirUnit * remDist, rayParams)
+        if not hit then
+            return true
+        end
+
+        local hitPart = hit.Instance
+        if targetChar and hitPart:IsDescendantOf(targetChar) then
+            return true
+        end
+
+        local isIgnorable = false
+        if hitPart:IsA("BasePart") then
+            local nLow = hitPart.Name:lower()
+            -- Viewmodel / Camera near-plane overlay part right at origin
+            if (hit.Position - fromPos).Magnitude < 0.8 then
+                isIgnorable = true
+            -- Pure invisible trigger zones (sound zones, touch interests, checkpoints)
+            elseif (hitPart.Transparency >= 0.98 and not hitPart.CanCollide and not nLow:find("vox") and not nLow:find("wall") and not nLow:find("shield")) then
+                isIgnorable = true
+            elseif nLow:find("trigger") or nLow:find("touchinterest") or nLow:find("audiozone") then
+                isIgnorable = true
+            end
+        end
+
+        if isIgnorable then
+            table.insert(ignoreList, hitPart)
+            local adv = (hit.Position - curOrigin).Magnitude + 0.1
+            if adv >= remDist then
+                return true
+            end
+            curOrigin = curOrigin + dirUnit * adv
+            remDist = remDist - adv
+        else
+            -- Real wall, building, fence, barricade, car, tree, etc.
+            return false
+        end
+    end
+
+    return false
+end
+
+-- Robust dual-origin line-of-sight raycast (Camera + Character weapon angle)
+local function isTargetVisible(targetPart, targetChar)
+    local cam = workspace.CurrentCamera
+    if not cam or not targetPart or not targetChar then return false end
+
+    local targetPos = targetPart.Position
+    local myChar = LocalPlayer.Character
+    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+    local myHead = myChar and myChar:FindFirstChild("Head")
+    local myOrigin = myHead and myHead.Position or (myHRP and myHRP.Position + Vector3.new(0, 1.5, 0))
+    local camOrigin = cam.CFrame.Position
+
+    -- 1. Check Camera Line of Sight
+    local camClear = isSingleRayClear(camOrigin, targetPos, targetChar)
+    if not camClear then
+        return false -- Blocked from camera view
+    end
+
+    -- 2. Check Character Line of Sight (Where gun fires in 3rd person)
+    if myOrigin then
+        local charClear = isSingleRayClear(myOrigin, targetPos, targetChar)
+        if not charClear then
+            return false -- Blocked from character weapon / chest angle
+        end
+    end
+
+    return true
+end
+
+local function getClosestPlayerToCenter(screenCenter)
+    local closestPlayer = nil
+    local shortestDist = Combat_Config.FOVRadius
+    Camera = workspace.CurrentCamera
+    if not Camera then return nil end
+
+    local myChar = LocalPlayer.Character
+    if not myChar or myChar:GetAttribute("WarzDead") == true or LocalPlayer:GetAttribute("CSGO_Dead") == true then
+        return nil
+    end
+
+    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return nil end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Parent == Players then
+            if not isTeammate(player) then
+                local char = player.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                local targetPart = getPlayerAimPart(player, Combat_Config.AimbotPart)
+                local hrp = targetPart or (char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso") or char.PrimaryPart))
+
+                -- Check alive state strictly
+                local isAlive = char 
+                    and targetPart 
+                    and (not hum or hum.Health > 0)
+                    and char:GetAttribute("WarzDead") ~= true
+                    and player:GetAttribute("CSGO_Dead") ~= true
+                    and char:IsDescendantOf(workspace)
+
+                if isAlive then
+                    local dist3D = (myHRP.Position - targetPart.Position).Magnitude
+                    if dist3D <= Combat_Config.MaxAimbotDistance then
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+                        if onScreen and screenPos.Z > 0 then
+                            local canSee = true
+                            if Combat_Config.WallCheck then
+                                canSee = isTargetVisible(targetPart, char)
+                            end
+
+                            if canSee then
+                                local dist2D = (Vector2.new(screenPos.X, screenPos.Y) - screenCenter).Magnitude
+                                if dist2D <= shortestDist then
+                                    shortestDist = dist2D
+                                    closestPlayer = player
+                                end
+                            end
+                        end
                     end
                 end
             end
@@ -2432,1017 +2035,1786 @@ local function getClosestPlayerToMouse()
     return closestPlayer
 end
 
--- ══════════════════ PLAYER ESP ENGINE (With Health Bar) ══════════════════
-local function applyESP(player)
-    if player == LocalPlayer then return end
+-- ========================================================
+-- WEAPON AUTO SWITCH BACK TRACKER
+-- ========================================================
+local lastHeldWeaponSlot = 1
 
-    local function setupChar(char)
-        if not char or not scriptRunning then return end
-        local rootPart = getRootPart(char) or char:WaitForChild("HumanoidRootPart", 5) or char:WaitForChild("Head", 5)
-        if not rootPart then return end
-
-        local highlight = char:FindFirstChild("ESPHighlight") or Instance.new("Highlight")
-        highlight.Name = "ESPHighlight"
-        highlight.Adornee = char
-        highlight.FillColor = Theme.Red
-        highlight.FillTransparency = 0.55
-        highlight.OutlineColor = Theme.White
-        highlight.Enabled = Config.espEnabled and isEnemy(player)
-        highlight.Parent = char
-
-        if rootPart:FindFirstChild("ESPBillboard") then rootPart.ESPBillboard:Destroy() end
-        local bgui = Instance.new("BillboardGui")
-        bgui.Name = "ESPBillboard"
-        bgui.Adornee = rootPart
-        bgui.Size = UDim2.new(0, 180, 0, 36)
-        bgui.StudsOffset = Vector3.new(0, 3.8, 0)
-        bgui.AlwaysOnTop = true
-        bgui.Enabled = Config.espEnabled and isEnemy(player)
-        bgui.Parent = rootPart
-
-        local txt = Instance.new("TextLabel")
-        txt.Name = "ESPText"
-        txt.Parent = bgui
-        txt.Size = UDim2.new(1, 0, 0, 18)
-        txt.BackgroundTransparency = 1
-        txt.Text = "[ " .. player.Name .. " ]"
-        txt.TextColor3 = Theme.White
-        txt.TextStrokeTransparency = 0
-        txt.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-        txt.TextSize = 11
-        txt.Font = Enum.Font.GothamBold
-
-        -- Mini Health Bar บน ESP (Requirement 2)
-        local hpBarBg = Instance.new("Frame")
-        hpBarBg.Name = "ESPHpBg"
-        hpBarBg.Parent = bgui
-        hpBarBg.Size = UDim2.new(0, 80, 0, 4)
-        hpBarBg.Position = UDim2.new(0.5, -40, 0, 20)
-        hpBarBg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        hpBarBg.BorderSizePixel = 0
-        RoundCorner(hpBarBg, 2)
-
-        local hpBarFill = Instance.new("Frame")
-        hpBarFill.Name = "ESPHpFill"
-        hpBarFill.Parent = hpBarBg
-        hpBarFill.Size = UDim2.new(1, 0, 1, 0)
-        hpBarFill.BackgroundColor3 = Theme.Green
-        hpBarFill.BorderSizePixel = 0
-        RoundCorner(hpBarFill, 2)
-
-        if rootPart:FindFirstChild("BoxESPBillboard") then rootPart.BoxESPBillboard:Destroy() end
-        local boxGui = Instance.new("BillboardGui")
-        boxGui.Name = "BoxESPBillboard"
-        boxGui.Adornee = rootPart
-        boxGui.Size = UDim2.new(4.5, 0, 6, 0)
-        boxGui.StudsOffset = Vector3.new(0, 0.5, 0)
-        boxGui.AlwaysOnTop = true
-        boxGui.Enabled = Config.espEnabled and Config.boxEspEnabled and isEnemy(player)
-        boxGui.Parent = rootPart
-
-        local boxFrame = Instance.new("Frame")
-        boxFrame.Parent = boxGui
-        boxFrame.Size = UDim2.new(1, 0, 1, 0)
-        boxFrame.BackgroundTransparency = 1
-
-        local stroke = Instance.new("UIStroke")
-        stroke.Parent = boxFrame
-        stroke.Color = Theme.Red
-        stroke.Thickness = 1.2
+local function updateHeldWeapon()
+    local cur = tonumber(LocalPlayer:GetAttribute("CSGO_ActiveSlot"))
+    if cur == 1 or cur == 2 then
+        lastHeldWeaponSlot = cur
     end
-
-    if player.Character then task_spawn(setupChar, player.Character) end
-    table.insert(connections, player.CharacterAdded:Connect(function(char) task_spawn(setupChar, char) end))
 end
 
-for _, p in pairs(Players:GetPlayers()) do applyESP(p) end
-table.insert(connections, Players.PlayerAdded:Connect(applyESP))
+LocalPlayer:GetAttributeChangedSignal("CSGO_ActiveSlot"):Connect(updateHeldWeapon)
+updateHeldWeapon()
 
--- ══════════════════ DROPPED ITEM ESP ENGINE (Requirement 3) ══════════════════
-local function getLootFolder()
-    return Workspace:FindFirstChild("WarzLoot") 
-        or Workspace:FindFirstChild("Loot") 
-        or Workspace:FindFirstChild("Drops")
-end
-
-local function getItemCategory(name)
-    local n = string.lower(tostring(name))
-    if string.find(n, "bandage") or string.find(n, "med") or string.find(n, "heal") or string.find(n, "pill") or string.find(n, "blood") then
-        return "ยาและเลือด"
-    elseif string.find(n, "ammo") or string.find(n, "mag") or string.find(n, "stanag") or string.find(n, "bullet") or string.find(n, "box") then
-        return "กระสุน"
-    elseif string.find(n, "badger") or string.find(n, "rifle") or string.find(n, "gun") or string.find(n, "pistol") or string.find(n, "knife") or string.find(n, "ak") or string.find(n, "m4") or string.find(n, "sniper") or string.find(n, "sig") or string.find(n, "mp5") or string.find(n, "shotgun") or string.find(n, "awp") or string.find(n, "scar") then
-        return "อาวุธ"
-    elseif string.find(n, "food") or string.find(n, "water") or string.find(n, "soda") or string.find(n, "can") or string.find(n, "eat") or string.find(n, "drink") or string.find(n, "beef") or string.find(n, "apple") then
-        return "อาหาร/น้ำ"
-    elseif string.find(n, "armor") or string.find(n, "helmet") or string.find(n, "vest") or string.find(n, "bag") or string.find(n, "backpack") then
-        return "เกราะ/กระเป๋า"
-    end
-    return "อื่น ๆ"
-end
-
-local function getItemColor(category)
-    if category == "อาวุธ" then return Theme.Gold end
-    if category == "กระสุน" then return Theme.Cyan end
-    if category == "ยาและเลือด" then return Theme.Green end
-    if category == "อาหาร/น้ำ" then return Theme.Orange end
-    if category == "เกราะ/กระเป๋า" then return Theme.Purple end
-    return Theme.WhiteSoft
-end
-
-local function isAllowedByFilter(item, searchTable, categoryStr)
-    local cat = getItemCategory(item.Name)
-    if categoryStr and categoryStr ~= "ทั้งหมด" and cat ~= categoryStr then
-        return false
-    end
-    
-    if searchTable and type(searchTable) == "table" then
-        if searchTable["ทั้งหมด"] then
-            return true
-        end
-        local hasAnySelection = false
-        for k, v in pairs(searchTable) do
-            if v then hasAnySelection = true break end
-        end
-        if hasAnySelection then
-            local matched = false
-            for k, v in pairs(searchTable) do
-                if v and k ~= "ทั้งหมด" then
-                    if string.find(string.lower(item.Name), string.lower(k), 1, true) then
-                        matched = true
-                        break
-                    end
-                end
-            end
-            if not matched then return false end
-        end
-    end
-    return true
-end
-
-local function updateItemESP()
-    local lootFolder = getLootFolder()
-    local myRoot = LocalPlayer and LocalPlayer.Character and getRootPart(LocalPlayer.Character)
-    if not lootFolder or not myRoot then return end
-
-    for _, item in ipairs(lootFolder:GetChildren()) do
-        local targetPart = item:IsA("BasePart") and item or item:FindFirstChildWhichIsA("BasePart", true)
-        if targetPart then
-            local dist = (myRoot.Position - targetPart.Position).Magnitude
-            local shouldShow = Config.itemEspEnabled and (dist <= Config.itemEspMaxDist) and isAllowedByFilter(item, Config.itemSearch, Config.itemCategory)
-
-            local bgui = targetPart:FindFirstChild("ItemESPBillboard")
-            if shouldShow then
-                local cat = getItemCategory(item.Name)
-                local catColor = getItemColor(cat)
-
-                if not bgui then
-                    bgui = Instance.new("BillboardGui")
-                    bgui.Name = "ItemESPBillboard"
-                    bgui.Adornee = targetPart
-                    bgui.Size = UDim2.new(0, 160, 0, 20)
-                    bgui.StudsOffset = Vector3.new(0, 1.2, 0)
-                    bgui.AlwaysOnTop = true
-                    bgui.Parent = targetPart
-
-                    local txt = Instance.new("TextLabel")
-                    txt.Name = "ItemESPText"
-                    txt.Parent = bgui
-                    txt.Size = UDim2.new(1, 0, 1, 0)
-                    txt.BackgroundTransparency = 1
-                    txt.Font = Enum.Font.GothamBold
-                    txt.TextSize = 10
-                    txt.TextStrokeTransparency = 0
-                    txt.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-                end
-                bgui.Enabled = true
-                local txt = bgui:FindFirstChild("ItemESPText")
-                if txt then
-                    txt.Text = string.format("[%s] %s [%dm]", cat, item.Name, math.floor(dist))
-                    txt.TextColor3 = catColor
-                end
-            else
-                if bgui then bgui.Enabled = false end
-            end
+local function switchBackToGun()
+    task.wait(0.05)
+    local cur = tonumber(LocalPlayer:GetAttribute("CSGO_ActiveSlot"))
+    if cur ~= 1 and cur ~= 2 then
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        local switchRemote = remotes and remotes:FindFirstChild("SwitchWeaponRequest")
+        if switchRemote then
+            switchRemote:FireServer(lastHeldWeaponSlot or 1)
         end
     end
 end
 
--- ══════════════════ HEAD HITBOX EXPANSION ══════════════════
-local function resetHitboxes()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player.Character then
-            local head = player.Character:FindFirstChild("Head")
-            if head then
-                pcall(function()
-                    head.Size = Vector3.new(1.2, 1.2, 1.2)
-                    head.Transparency = 0
-                    head.CanCollide = false
-                    local mesh = head:FindFirstChildWhichIsA("SpecialMesh")
-                    if mesh then
-                        mesh.Scale = Vector3.new(1.2, 1.2, 1.2)
-                    end
-                end)
-            end
-        end
-    end
-end
-
-local function updateHitboxes()
-    if not Config.hitboxExpanded or not scriptRunning then return end
-    local currentSize = Config.hitboxSize or 7
-    
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and isEnemy(player) then
-            local head = player.Character:FindFirstChild("Head")
-            if head then
-                pcall(function()
-                    head.Size = Vector3.new(currentSize, currentSize, currentSize)
-                    head.Transparency = 0.5
-                    head.CanCollide = false
-                    head.Massless = true
-                    local mesh = head:FindFirstChildWhichIsA("SpecialMesh")
-                    if mesh then
-                        mesh.Scale = Vector3.new(currentSize, currentSize, currentSize)
-                    end
-                end)
-            end
-        end
-    end
-end
-
--- ══════════════════ STAMINA & SPEED HOOK (Requirement 5) ══════════════════
-local cachedStanceUpvalue = nil
-pcall(function()
-    if LocalPlayer and LocalPlayer:FindFirstChild("PlayerScripts") then
-        local clientInput = LocalPlayer.PlayerScripts:FindFirstChild("Client") and LocalPlayer.PlayerScripts.Client:FindFirstChild("input")
-        if clientInput and clientInput:FindFirstChild("PlayerStance") then
-            local PlayerStance = require(clientInput.PlayerStance)
-            local getupv = (debug and debug.getupvalues) or getupvalues
-            if getupv then
-                for _, fn in pairs(PlayerStance) do
-                    if typeof(fn) == "function" then
-                        local uvs = getupv(fn)
-                        if uvs then
-                            for _, uv in pairs(uvs) do
-                                if typeof(uv) == "table" and uv.stamina ~= nil then
-                                    cachedStanceUpvalue = uv
-                                    break
-                                end
-                            end
-                        end
-                    end
-                    if cachedStanceUpvalue then break end
-                end
-            end
-        end
+local isHealingActive = false
+LocalPlayer:GetAttributeChangedSignal("WarzMedCdLeft"):Connect(function()
+    local cd = tonumber(LocalPlayer:GetAttribute("WarzMedCdLeft")) or 0
+    if cd > 0.05 then
+        isHealingActive = true
+    elseif isHealingActive and cd <= 0.05 then
+        isHealingActive = false
+        switchBackToGun()
     end
 end)
 
--- ══════════════════ WARZ LOOTING ENGINE ══════════════════
-local PickupLootRemote = nil
-local function getPickupRemote()
-    if PickupLootRemote and PickupLootRemote.Parent then return PickupLootRemote end
-    local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-    if remotes and remotes:FindFirstChild("PickupLoot") then
-        PickupLootRemote = remotes.PickupLoot
-        return PickupLootRemote
-    end
-    PickupLootRemote = ReplicatedStorage:FindFirstChild("PickupLoot", true)
-    return PickupLootRemote
-end
-
-local function getObjectLootUid(obj)
-    if not obj then return nil end
-    local uid = obj:GetAttribute("LootUid")
-    if uid then return uid end
-    for _, desc in ipairs(obj:GetDescendants()) do
-        uid = desc:GetAttribute("LootUid")
-        if uid then return uid end
-    end
-    return nil
-end
-
-local originalItemPositions = {}
-local function getItemRealPosition(item)
-    if originalItemPositions[item] then return originalItemPositions[item] end
-    if item:IsA("Model") then
-        local p = item.PrimaryPart or item:FindFirstChildWhichIsA("BasePart", true)
-        return p and p.Position or nil
-    elseif item:IsA("BasePart") then
-        return item.Position
-    end
-    return nil
-end
-
-local lootSequence = 0
-local isLootingBusy = false
-local function doPickupLoot(uid, item)
-    local remote = getPickupRemote()
-    if not uid or not remote or isLootingBusy then return false end
-    isLootingBusy = true
-
-    local character = LocalPlayer and LocalPlayer.Character
-    local hrp = character and character:FindFirstChild("HumanoidRootPart")
-    local oldCFrame = hrp and hrp.CFrame
-
-    if Config.teleportLoot and hrp and item then
-        local targetPos = getItemRealPosition(item)
-        if targetPos then
-            hrp.CFrame = CFrame.new(targetPos + Vector3.new(0, 2.5, 0))
-            task_wait(0.05)
-        end
-    end
-
-    lootSequence = lootSequence + 1
-    local curSeq = lootSequence
-    remote:FireServer(uid, "prep", curSeq)
-    task_wait(1.05)
-    remote:FireServer(uid, "use", curSeq)
-    task_wait(0.1)
-
-    if Config.teleportLoot and hrp and oldCFrame then
-        hrp.CFrame = oldCFrame
-    end
-
-    isLootingBusy = false
-    return true
-end
-
-local isUndergroundLooting = false
-local function startUndergroundLoot()
-    if isUndergroundLooting then return end
-    isUndergroundLooting = true
-    task_spawn(function()
-        while Config.undergroundLoot and scriptRunning do
-            local lootFolder = getLootFolder()
-            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            local myHum = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            
-            if not lootFolder or not hrp or not myHum then
-                task_wait(1)
-                continue
+local function triggerAutoSwitchBack()
+    task.spawn(function()
+        local t0 = tick()
+        -- Wait up to 0.6s for healing cooldown to start
+        while tick() - t0 < 0.6 do
+            if (tonumber(LocalPlayer:GetAttribute("WarzMedCdLeft")) or 0) > 0.05 then
+                break
             end
-            
-            local targetItem = nil
-            local targetDist = math.huge
-            local targetRealPos = nil
-            
-            for _, item in ipairs(lootFolder:GetChildren()) do
-                local uid = getObjectLootUid(item)
-                if uid and item.Parent and isAllowedByFilter(item, Config.lootSearch, "ทั้งหมด") then
-                    local realPos = getItemRealPosition(item)
-                    if realPos then
-                        local dist = (hrp.Position - realPos).Magnitude
-                        if dist < targetDist then
-                            targetDist = dist
-                            targetItem = item
-                            targetRealPos = realPos
-                        end
-                    end
-                end
-            end
-            
-            if targetItem and targetRealPos then
-                -- Move underground smoothly at walking speed
-                local undergroundTargetPos = targetRealPos - Vector3.new(0, 4, 0)
-                local startPos = hrp.Position
-                local dist = (startPos - undergroundTargetPos).Magnitude
-                
-                if dist > 3 then
-                    local speed = 20 -- safe running speed
-                    local timeToMove = dist / speed
-                    hrp.Anchored = true
-                    
-                    local tweenInfo = TweenInfo.new(timeToMove, Enum.EasingStyle.Linear)
-                    local tween = TweenService:Create(hrp, tweenInfo, {CFrame = CFrame.new(undergroundTargetPos)})
-                    tween:Play()
-                    tween.Completed:Wait()
-                end
-                
-                if Config.undergroundLoot and scriptRunning then
-                    local uid = getObjectLootUid(targetItem)
-                    if uid then
-                        -- Tween ขึ้นมาผิวดินแบบสมูท (เพื่อไม่ให้โดนเตะฐานวาร์ป)
-                        hrp.Anchored = true
-                        local upPos = targetRealPos + Vector3.new(0, 1.5, 0)
-                        local upTweenInfo = TweenInfo.new(0.25, Enum.EasingStyle.Linear)
-                        local upTween = TweenService:Create(hrp, upTweenInfo, {CFrame = CFrame.new(upPos)})
-                        upTween:Play()
-                        upTween.Completed:Wait()
-                        
-                        -- เก็บของขณะที่ Anchored อยู่ ป้องกันเด้งทะลุกำแพง (Physics Explosion)
-                        doPickupLoot(uid, targetItem)
-                        
-                        -- Tween กลับลงดิน
-                        local downTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Linear)
-                        local downTween = TweenService:Create(hrp, downTweenInfo, {CFrame = CFrame.new(undergroundTargetPos)})
-                        downTween:Play()
-                        downTween.Completed:Wait()
-                    end
-                end
-            else
-                task_wait(0.5)
-            end
+            task.wait(0.05)
         end
-        
-        -- ดันตัวขึ้นมาบนดินอย่างสมูทตอนปิด
-        local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.Anchored = true
-            local finalPos = hrp.Position + Vector3.new(0, 5, 0)
-            local exitTween = TweenService:Create(hrp, TweenInfo.new(0.3, Enum.EasingStyle.Linear), {CFrame = CFrame.new(finalPos)})
-            exitTween:Play()
-            exitTween.Completed:Wait()
-            hrp.Anchored = false
+        -- Wait until healing cooldown finishes or max 4s timeout
+        while (tonumber(LocalPlayer:GetAttribute("WarzMedCdLeft")) or 0) > 0.05 and (tick() - t0 < 4.0) do
+            task.wait(0.05)
         end
-        isUndergroundLooting = false
+        switchBackToGun()
     end)
 end
 
--- ══════════════════ CORE RENDER LOOPS ══════════════════
-
--- 1. Main RenderStepped: Aimbot, FOV, Target Health HUD
-table.insert(connections, RunService.RenderStepped:Connect(function()
-    if not scriptRunning then return end
-
-    -- อัปเดตวงเล็ง FOV Circle
-    if fovFrame then
-        fovFrame.Size = UDim2.new(0, Config.fovRadius * 2, 0, Config.fovRadius * 2)
-        fovFrame.Visible = Config.fovEnabled
+-- ========================================================
+-- NO MUZZLE FLASH HOOK (COMPLETELY ELIMINATE FLASHES WHILE PRESERVING BULLET TRACERS)
+-- ========================================================
+local function isTracerOrBullet(inst)
+    if not inst then return false end
+    local n = inst.Name:lower()
+    if n:find("tracer") or n:find("bullet") or n:find("trail") or n:find("shot") or n:find("proj") or n:find("beam") or n:find("line") or n:find("laser") then
+        return true
     end
+    if inst:IsA("Beam") or inst:IsA("Trail") then
+        return true
+    end
+    return false
+end
 
-    -- เช็คสถานะตัวละครเรา
-    local myHum = LocalPlayer and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-    if not myHum or myHum.Health <= 0 then
-        if TargetHudFrame then TargetHudFrame.Visible = false end
-        stickyTarget = nil
+local function enhanceBulletTracer(inst)
+    if not Combat_Config.BulletTracers or not inst then return end
+    pcall(function()
+        if inst:IsA("Beam") then
+            inst.Enabled = true
+            inst.Transparency = NumberSequence.new(0)
+            if inst.Width0 < 0.15 then inst.Width0 = 0.22 end
+            if inst.Width1 < 0.15 then inst.Width1 = 0.22 end
+            inst.FaceCamera = true
+        elseif inst:IsA("Trail") then
+            inst.Enabled = true
+            inst.Transparency = NumberSequence.new(0)
+            if inst.Lifetime < 0.3 then inst.Lifetime = 0.6 end
+            inst.FaceCamera = true
+        elseif inst:IsA("BasePart") and isTracerOrBullet(inst) then
+            inst.Transparency = 0
+        end
+    end)
+end
+
+local function neutraliseFlashInstance(inst)
+    if not Combat_Config.NoMuzzleFlash or not inst then return end
+    -- ห้ามปิดกั้นหรือซ่อนเส้นกระสุนเด็ดขาด เพื่อให้มองเห็นทิศทางกระสุนและคุมปืนได้
+    if isTracerOrBullet(inst) then
+        enhanceBulletTracer(inst)
         return
     end
 
-    -- การเล็งเป้าหมาย Aimbot
-    local isHolding = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) 
-                   or UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
-
-    if Config.aimbotEnabled and isHolding then
-        if not stickyTarget or not isValidTarget(stickyTarget) or not isVisible(getTargetPart(stickyTarget.Character)) then
-            stickyTarget = getClosestPlayerToMouse()
-        end
-
-        if stickyTarget and isValidTarget(stickyTarget) and Camera then
-            local targetPart = getTargetPart(stickyTarget.Character)
-            if targetPart then
-                local targetPos = targetPart.Position
-                local predictedPos = targetPos
-
-                if not Config.noBulletDrop then
-                    local velocity = targetPart.AssemblyLinearVelocity or targetPart.Velocity or Vector3.new(0,0,0)
-                    local distance = (targetPos - Camera.CFrame.Position).Magnitude
-                    local leadFactor = leadMultipliers[Config.leadIndex] or 1.0
-                    local timeToHit = (distance / 2500) * leadFactor
-                    predictedPos = targetPos + (velocity * timeToHit)
-                end
-
-                local smoothness = smoothnessLevels[Config.smoothIndex] or 0.25
-                local mode = aimModes[Config.aimModeIndex] or "Smooth Cam"
-
-                if mode == "Smooth Cam" then
-                    local targetCFrame = CFrame.lookAt(Camera.CFrame.Position, predictedPos)
-                    Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, smoothness)
-                elseif mode == "Hard Lock" then
-                    Camera.CFrame = CFrame.lookAt(Camera.CFrame.Position, predictedPos)
-                elseif mode == "Mouse Delta" then
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(predictedPos)
-                    if onScreen then
-                        local mousePos = UserInputService:GetMouseLocation()
-                        local deltaX = (screenPos.X - mousePos.X) * smoothness
-                        local deltaY = (screenPos.Y - mousePos.Y) * smoothness
-                        if mousemoverel then
-                            mousemoverel(deltaX, deltaY)
-                        else
-                            Camera.CFrame = Camera.CFrame:Lerp(CFrame.lookAt(Camera.CFrame.Position, predictedPos), smoothness)
-                        end
-                    end
-                end
-            end
-        end
-    else
-        stickyTarget = nil
-    end
-
-    -- อัปเดต Target Health HUD (Requirement 2)
-    local currentHudTarget = stickyTarget or getClosestPlayerToMouse()
-    if Config.targetHudEnabled and currentHudTarget and isValidTarget(currentHudTarget) then
-        local tChar = currentHudTarget.Character
-        local tHum = tChar and tChar:FindFirstChildOfClass("Humanoid")
-        local tRoot = tChar and getRootPart(tChar)
-        local myRoot = LocalPlayer and LocalPlayer.Character and getRootPart(LocalPlayer.Character)
-
-        if tHum and tRoot and myRoot and TargetHudFrame then
-            local dist = math.floor((myRoot.Position - tRoot.Position).Magnitude)
-            local hp = math.clamp(math.floor(tHum.Health), 0, math.floor(tHum.MaxHealth))
-            local maxHp = math.floor(tHum.MaxHealth)
-            local ratio = math.clamp(hp / maxHp, 0, 1)
-
-            TargetHudName.Text = "Enemy: " .. currentHudTarget.Name
-            TargetHudDist.Text = tostring(dist) .. "m"
-            TargetHealthText.Text = string.format("%d/%d HP (%d%%)", hp, maxHp, math.floor(ratio * 100))
-            TargetHealthFill.Size = UDim2.new(ratio, 0, 1, 0)
-
-            -- สีเลือดตามเปอร์เซ็นต์
-            if ratio > 0.6 then
-                TargetHealthFill.BackgroundColor3 = Theme.Green
-                TargetHealthText.TextColor3 = Theme.Green
-            elseif ratio > 0.25 then
-                TargetHealthFill.BackgroundColor3 = Theme.Yellow
-                TargetHealthText.TextColor3 = Theme.Yellow
-            else
-                TargetHealthFill.BackgroundColor3 = Theme.Red
-                TargetHealthText.TextColor3 = Theme.Red
-            end
-
-            -- ตรวจสอบอาวุธที่ถือ
-            local tool = tChar:FindFirstChildOfClass("Tool")
-            TargetHudHolding.Text = "อาวุธ: " .. (tool and tool.Name or "มือเปล่า")
-
-            TargetHudFrame.Visible = true
-        else
-            if TargetHudFrame then TargetHudFrame.Visible = false end
-        end
-    else
-        if TargetHudFrame then TargetHudFrame.Visible = false end
-    end
-
-    -- อัปเดต Hitbox
-    if Config.hitboxExpanded then
-        updateHitboxes()
-    end
-end))
-
--- 2. Stepped Loop: Noclip (Requirement 5)
-table.insert(connections, RunService.Stepped:Connect(function()
-    if Config.noclipEnabled and LocalPlayer and LocalPlayer.Character then
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") and part.CanCollide then
-                part.CanCollide = false
-            end
-        end
-    end
-end))
-
--- 3. Heartbeat Loop: Speed Hack, Stamina
-table.insert(connections, RunService.Heartbeat:Connect(function()
-    -- Speed Hack (Requirement 5)
-    if Config.speedEnabled and LocalPlayer and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum and hum.Health > 0 and hum.WalkSpeed ~= Config.speedValue then
-            hum.WalkSpeed = Config.speedValue
-        end
-    end
-
-    -- Infinite Stamina (Requirement 5)
-    if Config.infiniteStamina and LocalPlayer then
-        pcall(function()
-            LocalPlayer:SetAttribute("CSGO_SprintPenalty", 0)
-            LocalPlayer:SetAttribute("CSGO_Stamina", 75)
-            LocalPlayer:SetAttribute("Stamina", 100)
-        end)
-        if cachedStanceUpvalue and cachedStanceUpvalue.stamina ~= nil then
-            cachedStanceUpvalue.stamina = 75
-            cachedStanceUpvalue.sprintPenalty = 0
-            cachedStanceUpvalue.sprintAirLock = false
-        end
-    end
-end))
-
--- 4. Background Periodic Loop (ESP, Item ESP, Back Alert, Auto Heal, Loot Magnet)
-task_spawn(function()
-    local lastAlertTime = 0
-    local isHealing = false
-
-    local function sendKeyPress(keyCode)
-        VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
-        task_wait(0.05)
-        VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
-    end
-
-    while scriptRunning do
-        task_wait(0.12)
-
-        local myChar = LocalPlayer and LocalPlayer.Character
-        local myRoot = myChar and getRootPart(myChar)
-        local myHum  = myChar and myChar:FindFirstChildOfClass("Humanoid")
-
-        -- Update Player ESP Billboards & Health Bars
-        if myRoot and Config.espEnabled then
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character then
-                    local targetRoot = getRootPart(player.Character)
-                    local targetHum  = player.Character:FindFirstChildOfClass("Humanoid")
-                    if targetRoot and targetHum then
-                        local bgui = targetRoot:FindFirstChild("ESPBillboard")
-                        local boxGui = targetRoot:FindFirstChild("BoxESPBillboard")
-                        local highlight = player.Character:FindFirstChild("ESPHighlight")
-                        local shouldShow = Config.espEnabled and isEnemy(player)
-
-                        if bgui then bgui.Enabled = shouldShow end
-                        if boxGui then boxGui.Enabled = shouldShow and Config.boxEspEnabled end
-                        if highlight then highlight.Enabled = shouldShow end
-
-                        if shouldShow and bgui then
-                            local txt = bgui:FindFirstChild("ESPText")
-                            if txt then
-                                local dist = math.floor((myRoot.Position - targetRoot.Position).Magnitude)
-                                txt.Text = string.format("[ %s ] [ %dm ]", player.Name, dist)
-                            end
-                            local hpFill = bgui:FindFirstChild("ESPHpFill", true)
-                            if hpFill and Config.espHealthBar then
-                                local ratio = math.clamp(targetHum.Health / targetHum.MaxHealth, 0, 1)
-                                hpFill.Size = UDim2.new(ratio, 0, 1, 0)
-                                hpFill.BackgroundColor3 = (ratio > 0.5) and Theme.Green or Theme.Red
-                            end
-                        end
-                    end
-                end
-            end
-        end
-
-        -- Update Dropped Item ESP (Requirement 3)
-        if Config.itemEspEnabled then
-            pcall(updateItemESP)
-        end
-
-        -- Back Alert 20M
-        if Config.backAlertEnabled and myRoot and myHum and myHum.Health > 0 then
-            local myCFrame = myRoot.CFrame
-            local detectedBehind = false
-            local enemyName = ""
-            local enemyDist = 0
-
-            for _, player in pairs(Players:GetPlayers()) do
-                if player ~= LocalPlayer and player.Character and isEnemy(player) then
-                    local targetRoot = getRootPart(player.Character)
-                    if targetRoot then
-                        local distance = (targetRoot.Position - myRoot.Position).Magnitude
-                        if distance <= 65.6 then -- ~20 เมตร
-                            local relativePos = myCFrame:PointToObjectSpace(targetRoot.Position)
-                            if relativePos.Z > 0 then
-                                detectedBehind = true
-                                enemyName = player.Name
-                                enemyDist = math.floor(distance / 3.28084)
-                                break
-                            end
-                        end
-                    end
-                end
-            end
-
-            if detectedBehind and AlertFrame then
-                AlertText.Text = "⚠️ WARNING: " .. enemyName .. " IS BEHIND YOU! (" .. tostring(enemyDist) .. "m)"
-                AlertFrame.Visible = true
-                lastAlertTime = tick()
-            else
-                if tick() - lastAlertTime >= 3 and AlertFrame then
-                    AlertFrame.Visible = false
-                end
-            end
-        else
-            if AlertFrame then AlertFrame.Visible = false end
-        end
-
-        -- Auto Heal
-        if Config.autoHealEnabled and not isHealing and myHum and myHum.Health > 0 then
-            local healthPercent = (myHum.Health / myHum.MaxHealth) * 100
-            if healthPercent <= 85 and healthPercent > 3 then
-                isHealing = true
-                sendKeyPress(Enum.KeyCode.Three)
-                task_wait(0.1)
-                sendKeyPress(Enum.KeyCode.Three)
-                task_wait(0.1)
-                sendKeyPress(Enum.KeyCode.One)
-                task_wait(2)
-                isHealing = false
-            end
-        end
-
-        -- Auto Pickup Aura
-        if Config.autoPickupAura and myRoot and not isLootingBusy then
-            local lootFolder = getLootFolder()
-            if lootFolder then
-                for _, item in ipairs(lootFolder:GetChildren()) do
-                    local uid = getObjectLootUid(item)
-                    local realPos = getItemRealPosition(item)
-                    -- We can let aura pick up ALL items, or use itemSearch if wanted, 
-                    -- let's use the Loot Filter (lootSearch) for Auto Pickup Aura too!
-                    if uid and realPos and isAllowedByFilter(item, Config.lootSearch, "ทั้งหมด") then
-                        local dist = (myRoot.Position - realPos).Magnitude
-                        if dist <= 11 then
-                            doPickupLoot(uid, item)
-                            break
-                        end
-                    end
-                end
-            end
-        end
-    end
-end)
-
--- Instant Pickup
-table.insert(connections, ProximityPromptService.PromptButtonHoldBegan:Connect(function(prompt, player)
-    if Config.instantPickup then
-        if type(fireproximityprompt) == "function" then
-            fireproximityprompt(prompt, 1)
-        else
-            prompt.HoldDuration = 0
-        end
-    end
-end))
-table.insert(connections, ProximityPromptService.PromptShown:Connect(function(prompt)
-    if Config.instantPickup then prompt.HoldDuration = 0 end
-end))
-
--- ══════════════════ UNLOAD SCRIPT FUNCTION ══════════════════
-local function unloadScript()
-    scriptRunning = false
-
-    for _, conn in pairs(connections) do
-        if conn then pcall(function() conn:Disconnect() end) end
-    end
-    table.clear(connections)
-
-    resetHitboxes()
-
-    -- คืนค่า WalkSpeed
-    if LocalPlayer and LocalPlayer.Character then
-        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = 16 end
-    end
-
-    -- ล้าง ESP
-    for _, player in pairs(Players:GetPlayers()) do
-        if player.Character then
-            local hl = player.Character:FindFirstChild("ESPHighlight")
-            if hl then hl:Destroy() end
-            local root = getRootPart(player.Character)
-            if root then
-                if root:FindFirstChild("ESPBillboard") then root.ESPBillboard:Destroy() end
-                if root:FindFirstChild("BoxESPBillboard") then root.BoxESPBillboard:Destroy() end
-            end
-        end
-    end
-
-    -- ล้าง Item ESP
-    local lootFolder = getLootFolder()
-    if lootFolder then
-        for _, item in ipairs(lootFolder:GetChildren()) do
-            for _, desc in ipairs(item:GetDescendants()) do
-                if desc.Name == "ItemESPBillboard" then desc:Destroy() end
-            end
-        end
-    end
-
-    if ScreenGui then ScreenGui:Destroy() end
-
-    sendNotification("(S)Unique HUB", "🔴 ปิดการทำงานสคริปต์เรียบร้อยแล้ว", 3)
-    print("[(S)Unique HUB] Script Unloaded Successfully!")
-end
-
-_G.SilasUniqueHubCleanup = unloadScript
-
--- ══════════════════ POPULATE UI CONTROLS ══════════════════
-
--- [แท็บที่ 1: AIMBOT]
-createSectionHeader(aimTab, "ระบบเล็งเป้าอัตโนมัติ (Aimbot)")
-createToggleCard(aimTab, "Aimbot (ล็อกเป้า)", "ล็อกเป้าหมายอัตโนมัติเมื่อกดคลิกซ้ายหรือคลิกขวา", "aimbotEnabled")
-createToggleCard(aimTab, "No Bullet Drop (กระสุนยิงตรง)", "กระสุนพุ่งตรงเข้าเป้าหมายทันทีโดยไม่ย้อย", "noBulletDrop")
-createSelectorCard(aimTab, "Aim Mode (โหมดการเล็ง)", "เลือกวิธีขยับกล้องเล็งเป้า", aimModes, "aimModeIndex")
-createSelectorCard(aimTab, "Aim Speed / Smooth", "ระดับความเร็วและความนุ่มนวลของการล็อกเป้า", smoothnessLevels, "smoothIndex")
-createToggleCard(aimTab, "Wall Check (เช็คกำแพง)", "ล็อกเฉพาะเป้าหมายที่มองเห็นและไม่อยู่หลังกำแพง", "wallCheckEnabled")
-createSelectorCard(aimTab, "Target Part (จุดเล็ง)", "เลือกส่วนของร่างกายที่ต้องการล็อก", targetPartNames, "targetPartIndex")
-createSelectorCard(aimTab, "Lead Prediction (นำวิถี)", "คำนวณนำวิถีการเคลื่อนที่ของเป้าหมาย", leadMultipliers, "leadIndex")
-
-createSectionHeader(aimTab, "วงแหวน FOV (FOV Circle Slider)")
-createToggleCard(aimTab, "FOV Circle (แสดงวงเล็ง)", "แสดงวงแหวนขอบเขตการล็อกเป้าหมายบนหน้าจอ", "fovEnabled")
-createSliderCard(aimTab, "FOV Radius (รัศมีวงเล็ง)", "ปรับขนาดวงแหวน FOV ด้วยหลอดเลื่อน", 30, 600, "fovRadius", "px", function(val)
-    if fovFrame then fovFrame.Size = UDim2.new(0, val * 2, 0, val * 2) end
-end)
-
--- [แท็บที่ 2: VISUALS]
-createSectionHeader(visualsTab, "มองทะลุผู้เล่น (Player ESP & Health)")
-createToggleCard(visualsTab, "Player ESP (มองทะลุคน)", "แสดงชื่อ กรอบ และระยะทางของผู้เล่นทุกคนในแมพ", "espEnabled")
-createToggleCard(visualsTab, "Team Check (เฉพาะศัตรู)", "ซ่อน ESP สำหรับเพื่อนร่วมทีม", "teamCheckEnabled")
-createToggleCard(visualsTab, "Player Box ESP (กรอบ 3D)", "แสดงกรอบสี่เหลี่ยมรอบตัวผู้เล่น", "boxEspEnabled")
-createToggleCard(visualsTab, "ESP Health Bar (หลอดเลือด 3D)", "แสดงหลอดเลือดขนาดเล็กใต้ชื่อของผู้เล่น", "espHealthBar")
-
-createSectionHeader(visualsTab, "หลอดเลือดเป้าหมายเรียลไทม์ (Target Health HUD)")
-createToggleCard(visualsTab, "Target Health HUD (หลอดเลือดลอย)", "แสดงหน้าต่างหลอดเลือด ระยะทาง และอาวุธของเป้าหมายแบบเรียลไทม์", "targetHudEnabled")
-
-createSectionHeader(visualsTab, "มองทะลุไอเทมตกพื้น (Dropped Item ESP)")
-createToggleCard(visualsTab, "Dropped Item ESP (มองไอเทมตก)", "แสดงป้ายชื่อและระยะทางของไอเทมที่ดรอปอยู่บนพื้น", "itemEspEnabled")
-createSelectorCard(visualsTab, "Item Category (หมวดหมู่ไอเทม)", "เลือกกรองหมวดหมู่ไอเทมที่ต้องการแสดง", itemCategories, "itemCategory")
-local specificItems = {"ทั้งหมด", "Bandage", "Medkit", "Blood", "Badger", "AK", "M4", "Sniper", "Awp", "Scar", "Stanag", "Ammo", "Armor", "Helmet", "Backpack", "Food", "Water"}
-createMultiSelectCard(visualsTab, "ค้นหาชื่อไอเทม (Item Search)", "เลือกไอเทมเฉพาะที่ต้องการมองเห็น (เลือกได้หลายอัน)", specificItems, "itemSearch")
-createSliderCard(visualsTab, "Item ESP Max Distance", "ระยะทางไกลสุดที่จะแสดงป้ายไอเทมตกพื้น", 50, 1500, "itemEspMaxDist", "m")
-
--- [แท็บที่ 3: MOVEMENT]
-createSectionHeader(movementTab, "การเคลื่อนที่และความเร็ว (Movement Hacks)")
-createToggleCard(movementTab, "วิ่งเร็ว (Speed Walk)", "เร่งความเร็วในการเดินและวิ่งของตัวละคร", "speedEnabled")
-createSliderCard(movementTab, "ปรับความเร็ว (Speed Value)", "ปรับระดับความเร็วในการวิ่ง (16 คือปกติ)", 16, 120, "speedValue", "studs/s")
-createToggleCard(movementTab, "ไม่เหนื่อย (Infinite Stamina)", "วิ่งได้ตลอดเวลาโดยที่หลอด Stamina ไม่ลด", "infiniteStamina")
-createToggleCard(movementTab, "ทะลุกำแพง (Noclip)", "เดินทะลุสิ่งกีดขวาง ประตู และกำแพงได้", "noclipEnabled")
-
-createSectionHeader(movementTab, "ขยายส่วนหัว (Hitbox Expander)")
-createToggleCard(movementTab, "Expand Head Hitbox (ขยายหัว)", "ขยายขนาดหัวของศัตรูเพื่อให้ยิงโดนง่ายขึ้น", "hitboxExpanded", function(v)
-    if not v then resetHitboxes() end
-end)
-createSliderCard(movementTab, "Head Size (ขนาดหัว)", "ปรับขนาด Head Hitbox ด้วยหลอดเลื่อน", 2, 20, "hitboxSize", "studs")
-
--- [แท็บที่ 4: COMBAT & MISC]
-createSectionHeader(combatTab, "ช่วยเหลือการต่อสู้ (Combat Helpers)")
-createToggleCard(combatTab, "Auto Heal (ปั้มยาออโต้)", "กดสลับยากดปั้มเลือดอัตโนมัติเมื่อเลือดต่ำกว่า 85%", "autoHealEnabled")
-createToggleCard(combatTab, "Back Alert 20M (เตือนข้างหลัง)", "แสดงป้ายเตือนสีแดงทันทีเมื่อมีศัตรูอยู่ข้างหลังในระยะ 20 เมตร", "backAlertEnabled")
-createToggleCard(combatTab, "Instant Pickup (เก็บของไว)", "เก็บของได้ทันทีไม่ต้องกด E ค้าง", "instantPickup")
-
--- [แท็บที่ 5: WARZ LOOT]
-createSectionHeader(lootTab, "จัดการไอเทม (WarZ / BloxZ)")
-createToggleCard(lootTab, "ดูดเก็บรอบตัว (Auto Pickup Aura)", "เก็บไอเทมรอบตัวในระยะ Server (11 studs) อัตโนมัติ", "autoPickupAura")
-createToggleCard(lootTab, "ดำดินเก็บของอัตโนมัติ (Auto Underground Loot)", "ดำดินเก็บไอเทมตามที่เลือกไว้แบบเนียนๆ", "undergroundLoot", function(v)
-    if v then startUndergroundLoot() end
-end)
-createMultiSelectCard(lootTab, "เลือกไอเทมที่จะเก็บ (Loot Filter)", "เลือกชนิดไอเทมที่ต้องการดำดินไปเก็บ (เลือกได้หลายอัน)", specificItems, "lootSearch")
-
--- [แท็บที่ 6: CONFIGS (Requirement 1)]
-createSectionHeader(configTab, "ระบบตั้งชื่อและจัดการ Config (Multi-Config Manager)")
-
-local configNameInput = createInputCard(
-    configTab,
-    "ชื่อ Config (Config Name)",
-    "พิมพ์ชื่อการตั้งค่าที่คุณต้องการบันทึก",
-    "ตั้งชื่อ Config เช่น PvP, Farm...",
-    currentActiveConfigName,
-    function(txt)
-        if txt and txt ~= "" then currentActiveConfigName = txt end
-    end
-)
-
-local configSelectorControl = nil
-configSelectorControl = createSelectorCard(
-    configTab,
-    "เลือก Config ที่มีอยู่ (Select Config)",
-    "คลิกเพื่อสลับเลือก Config ที่บันทึกไว้ในเครื่อง",
-    savedConfigList,
-    "selectedConfigItem",
-    function(selectedName)
-        currentActiveConfigName = selectedName
-        if configNameInput and configNameInput.TextBox then
-            configNameInput.TextBox.Text = selectedName
-        end
-    end
-)
-
-createActionCard(
-    configTab,
-    "💾 บันทึก Config ปัจจุบัน (Save Config)",
-    "บันทึกค่าที่ตั้งไว้ทั้งหมดลงในชื่อที่ระบุ",
-    "บันทึก (Save)",
-    Theme.Green,
-    Theme.DarkText,
-    function()
-        local name = configNameInput.TextBox.Text
-        if not name or name == "" then name = "Default" end
-        name = string.gsub(name, "[^%w_%-]", "")
-        if name == "" then name = "Default" end
-
-        local master = loadAllConfigsFromDisk()
-        local toSave = {}
-        for k, v in pairs(Config) do toSave[k] = v end
-        master.Configs[name] = toSave
-        master.Current = name
-        saveAllConfigsToDisk(master)
-
-        currentActiveConfigName = name
-        refreshConfigNamesList()
-        configSelectorControl.SetOptions(savedConfigList)
-        ActiveConfigBadgeLabel.Text = "📁 " .. name
-
-        sendNotification("Unique HUB Config", "✓ บันทึก Config '" .. name .. "' สำเร็จ!", 3)
-    end
-)
-
-createActionCard(
-    configTab,
-    "📁 โหลด Config ที่เลือก (Load Config)",
-    "โหลดการตั้งค่าและอัปเดตปุ่มสลับทั้งหมดบนหน้าต่างทันที",
-    "โหลด (Load)",
-    Theme.White,
-    Theme.DarkText,
-    function()
-        local name = currentActiveConfigName
-        local master = loadAllConfigsFromDisk()
-        if master.Configs and master.Configs[name] then
-            applyConfigData(master.Configs[name])
-            sendNotification("Unique HUB Config", "✓ โหลด Config '" .. name .. "' เรียบร้อยแล้ว!", 3)
-        else
-            sendNotification("Unique HUB Config", "❌ ไม่พบไฟล์ Config ชื่อนี้", 3)
-        end
-    end
-)
-
-createActionCard(
-    configTab,
-    "🗑️ ลบ Config ที่เลือก (Delete Config)",
-    "ลบ Config นี้ออกจากระบบ (ไม่สามารถลบ Default ได้)",
-    "ลบ (Delete)",
-    Theme.Red,
-    Theme.White,
-    function()
-        local name = currentActiveConfigName
-        if name == "Default" then
-            sendNotification("Unique HUB Config", "⚠️ ไม่อนุญาตให้ลบ Default Config", 3)
-            return
-        end
-        local master = loadAllConfigsFromDisk()
-        if master.Configs and master.Configs[name] then
-            master.Configs[name] = nil
-            master.Current = "Default"
-            saveAllConfigsToDisk(master)
-
-            currentActiveConfigName = "Default"
-            if configNameInput and configNameInput.TextBox then
-                configNameInput.TextBox.Text = "Default"
-            end
-            refreshConfigNamesList()
-            configSelectorControl.SetOptions(savedConfigList)
-            ActiveConfigBadgeLabel.Text = "📁 Default"
-
-            sendNotification("Unique HUB Config", "🗑️ ลบ Config '" .. name .. "' สำเร็จ", 3)
-        end
-    end
-)
-
-createActionCard(
-    configTab,
-    "🔄 คืนค่าเริ่มต้น (Reset Default)",
-    "รีเซ็ตการตั้งค่าทั้งหมดกลับเป็นค่ามาตรฐาน",
-    "รีเซ็ต",
-    Theme.BadgeBg,
-    Theme.WhiteSoft,
-    function()
-        applyConfigData(DefaultConfig)
-        sendNotification("Unique HUB Config", "🔄 คืนค่าเริ่มต้นเรียบร้อยแล้ว", 3)
-    end
-)
-
-createSectionHeader(configTab, "ปิดการทำงาน (Unload)")
-createActionCard(
-    configTab,
-    "🔴 ปิดการทำงานสคริปต์ (Unload Script)",
-    "ลบ UI ทั้งหมดและยกเลิกการเชื่อมต่อ Loop ทั้งหมดอย่างปลอดภัย",
-    "ปิดสคริปต์",
-    Color3.fromRGB(150, 30, 30),
-    Theme.White,
-    function()
-        unloadScript()
-    end
-)
-
--- [แท็บที่ 7: CREDITS & KEYS]
-createSectionHeader(creditsTab, "ข้อมูลและปุ่มควบคุม (Information)")
-createActionCard(creditsTab, "ปุ่มคีย์ลัดย่อ/ขยาย (Minimize Key)", "กดปุ่ม [X] บนคีย์บอร์ดเพื่อย่อขนาดหน้าต่าง GUI", "คีย์ [X]", Theme.Card, Theme.WhiteSoft, nil)
-createActionCard(creditsTab, "พัฒนาโดย (Credits)", "SilasTH2449 Engine • Unique HUB Team Monochrome UI", "Silas HUB", Theme.Card, Theme.WhiteSoft, nil)
-
--- สลับเปิดแท็บแรก (Aimbot)
-switchTab("Aimbot")
-
--- โหลด Config ล่าสุดอัตโนมัติ (ถ้ามี)
-task_spawn(function()
-    task_wait(0.2)
-    local master = loadAllConfigsFromDisk()
-    if master and master.Current and master.Configs[master.Current] then
-        currentActiveConfigName = master.Current
-        applyConfigData(master.Configs[master.Current])
-        if configNameInput and configNameInput.TextBox then
-            configNameInput.TextBox.Text = master.Current
-        end
-    end
-end)
-
-sendNotification("(S)Unique HUB", "✓ โหลดระบบและส่วนติดต่อผู้ใช้สำเร็จ!", 3)
-print("[(S)Unique HUB] Initialized and Loaded Successfully!")
-
-end) -- end pcall init
-
-if not _initSuccess then
-    warn("[(S)Unique HUB] Init Error:", _initErr)
     pcall(function()
-        game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "(S)Unique HUB - Error",
-            Text = tostring(_initErr),
-            Duration = 10
-        })
+        local n = inst.Name:lower()
+        if inst:IsA("Light") then
+            inst.Enabled = false
+            inst.Brightness = 0
+            inst.Range = 0
+        elseif inst:IsA("BillboardGui") then
+            if n:find("flash") or n:find("muzzle") or n:find("fire") or n:find("glow") or n:find("light") or n:find("spark") then
+                inst.Enabled = false
+                inst.Size = UDim2.new(0, 0, 0, 0)
+                inst.AlwaysOnTop = false
+            end
+        elseif inst:IsA("ParticleEmitter") then
+            if n:find("flash") or n:find("muzzle") or n:find("fire") or n:find("spark") or n:find("smoke") or n:find("circle") then
+                inst.Enabled = false
+                inst.Rate = 0
+                inst.Transparency = NumberSequence.new(1)
+                inst.Size = NumberSequence.new(0)
+                inst.Texture = ""
+                inst:Clear()
+            end
+        end
     end)
 end
 
+local function cleanMuzzleHierarchy(root)
+    if not Combat_Config.NoMuzzleFlash or not root then return end
+    if isTracerOrBullet(root) then
+        enhanceBulletTracer(root)
+        return
+    end
+    neutraliseFlashInstance(root)
+    for _, d in ipairs(root:GetDescendants()) do
+        if isTracerOrBullet(d) then
+            enhanceBulletTracer(d)
+        else
+            neutraliseFlashInstance(d)
+        end
+    end
+end
+
+-- 1. Camera Viewmodel Flash Neutralizer (Extinguishes 100% of 1st-person screen flashes)
+local function handleCameraDescendant(d)
+    if not Combat_Config.NoMuzzleFlash then return end
+    if isTracerOrBullet(d) then
+        enhanceBulletTracer(d)
+        return
+    end
+    local n = d.Name:lower()
+    if d:IsA("Light") or d:IsA("BillboardGui") then
+        neutraliseFlashInstance(d)
+    elseif d:IsA("ParticleEmitter") then
+        if n:find("flash") or n:find("muzzle") or n:find("fire") or n:find("spark") or n:find("smoke") or n:find("circle") then
+            neutraliseFlashInstance(d)
+        end
+    elseif n:find("flash") or n:find("muzzle") or n:find("fire") or n:find("light") or n:find("spark") or n:find("smoke") or n:find("circle") or n:find("glow") then
+        cleanMuzzleHierarchy(d)
+    end
+end
+
+if workspace.CurrentCamera then
+    workspace.CurrentCamera.DescendantAdded:Connect(handleCameraDescendant)
+    for _, d in ipairs(workspace.CurrentCamera:GetDescendants()) do
+        handleCameraDescendant(d)
+    end
+end
+
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+    local cam = workspace.CurrentCamera
+    if cam then
+        cam.DescendantAdded:Connect(handleCameraDescendant)
+        for _, d in ipairs(cam:GetDescendants()) do
+            handleCameraDescendant(d)
+        end
+    end
 end)
 
+-- 2. Character Gun Muzzle Neutralizer (Extinguishes 3rd-person gun barrel flashes)
+local function handleCharDescendant(d)
+    if not Combat_Config.NoMuzzleFlash then return end
+    if isTracerOrBullet(d) then
+        enhanceBulletTracer(d)
+        return
+    end
+    local n = d.Name:lower()
+    if d:IsA("Light") or n:find("muzzle") or n:find("flash") or n:find("light") or n:find("fire") or n:find("glow") then
+        cleanMuzzleHierarchy(d)
+    end
+end
 
+local function hookCharFlash(char)
+    if not char then return end
+    char.DescendantAdded:Connect(handleCharDescendant)
+    for _, d in ipairs(char:GetDescendants()) do
+        handleCharDescendant(d)
+    end
+end
+
+if LocalPlayer.Character then
+    hookCharFlash(LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(hookCharFlash)
+
+-- 3. WarzFx Folder Listener (Preserves bullet tracers 100% while silencing barrel flashes)
+local WarzFxFolder = workspace:FindFirstChild("WarzFx")
+local function suppressFxMuzzle(fx)
+    if not fx then return end
+    if isTracerOrBullet(fx) then
+        enhanceBulletTracer(fx)
+        for _, d in ipairs(fx:GetDescendants()) do
+            if isTracerOrBullet(d) then
+                enhanceBulletTracer(d)
+            end
+        end
+        return
+    end
+
+    if not Combat_Config.NoMuzzleFlash then return end
+
+    pcall(function()
+        local n = fx.Name:lower()
+        if n:find("muzzle") or n:find("flash") or n:find("light") or n:find("fire") or n:find("spark") then
+            if fx:IsA("BasePart") then
+                fx.Transparency = 1
+            end
+            cleanMuzzleHierarchy(fx)
+        end
+    end)
+end
+
+if WarzFxFolder then
+    WarzFxFolder.ChildAdded:Connect(suppressFxMuzzle)
+    for _, c in ipairs(WarzFxFolder:GetChildren()) do
+        suppressFxMuzzle(c)
+    end
+end
+workspace.ChildAdded:Connect(function(c)
+    if c.Name == "WarzFx" then
+        WarzFxFolder = c
+        c.ChildAdded:Connect(suppressFxMuzzle)
+    end
+end)
+
+-- 4. Deep Module Hook for CombatFx & FpsView
+local function findAnyModule(name)
+    local getlm = getloadedmodules or (syn and syn.getloadedmodules)
+    if getlm then
+        for _, m in ipairs(getlm()) do
+            if m.Name == name then
+                local ok, res = pcall(require, m)
+                if ok and type(res) == "table" then return res end
+            end
+        end
+    end
+    if LocalPlayer:FindFirstChild("PlayerScripts") then
+        local found = LocalPlayer.PlayerScripts:FindFirstChild(name, true)
+        if found and found:IsA("ModuleScript") then
+            local ok, res = pcall(require, found)
+            if ok and type(res) == "table" then return res end
+        end
+    end
+    if ReplicatedStorage then
+        local found = ReplicatedStorage:FindFirstChild(name, true)
+        if found and found:IsA("ModuleScript") then
+            local ok, res = pcall(require, found)
+            if ok and type(res) == "table" then return res end
+        end
+    end
+    return nil
+end
+
+task.spawn(function()
+    while true do
+        pcall(function()
+            -- Hook CombatFx
+            local cfxMod = findAnyModule("CombatFx")
+            if cfxMod and not cfxMod._WarzHubMuzzleHooked then
+                cfxMod._WarzHubMuzzleHooked = true
+                if type(cfxMod.MuzzleFlash) == "function" then
+                    local origMuzzle = cfxMod.MuzzleFlash
+                    cfxMod.MuzzleFlash = function(pos, dir, ...)
+                        if Combat_Config.NoMuzzleFlash then
+                            return
+                        end
+                        return origMuzzle(pos, dir, ...)
+                    end
+                end
+            end
+
+            -- Hook FpsView
+            local fpsMod = findAnyModule("FpsView")
+            if fpsMod and not fpsMod._WarzHubFpsHooked then
+                fpsMod._WarzHubFpsHooked = true
+                if type(fpsMod.PlayShoot) == "function" then
+                    local origFpsShoot = fpsMod.PlayShoot
+                    fpsMod.PlayShoot = function(...)
+                        local res = origFpsShoot(...)
+                        if Combat_Config.NoMuzzleFlash and workspace.CurrentCamera then
+                            for _, d in ipairs(workspace.CurrentCamera:GetDescendants()) do
+                                if d:IsA("Light") or d:IsA("ParticleEmitter") or d:IsA("BillboardGui") then
+                                    neutraliseFlashInstance(d)
+                                end
+                            end
+                        end
+                        return res
+                    end
+                end
+            end
+        end)
+        task.wait(2)
+    end
+end)
+
+-- ========================================================
+-- AUTO MED 3 3 1 ENGINE (PUMP MEDS UNTIL 100% HP & AUTO RETURN TO GUN)
+-- ========================================================
+local lastMedUsedTick = 0
+local isAutoMedLoopRunning = false
+local VirtualInputManager = game:GetService("VirtualInputManager")
+
+local function pressKey(keyCode, byteCode)
+    pcall(function()
+        if VirtualInputManager then
+            VirtualInputManager:SendKeyEvent(true, keyCode, false, game)
+            task.wait(0.02)
+            VirtualInputManager:SendKeyEvent(false, keyCode, false, game)
+        end
+    end)
+    pcall(function()
+        if keyclick then
+            keyclick(byteCode)
+        elseif keypress and keyrelease then
+            keypress(byteCode)
+            task.wait(0.02)
+            keyrelease(byteCode)
+        end
+    end)
+end
+
+local function switchToGunDirect()
+    pcall(function()
+        pressKey(Enum.KeyCode.One, 0x31)
+    end)
+    pcall(function()
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        local switchRemote = remotes and remotes:FindFirstChild("SwitchWeaponRequest")
+        if switchRemote then
+            switchRemote:FireServer(lastHeldWeaponSlot or 1)
+        end
+    end)
+end
+
+local function performMed331Cycle()
+    local kd = math.clamp(tonumber(Med_Config.KeyDelay) or 0.08, 0.02, 0.5)
+
+    -- 1. กดปุ่ม 3 (สลับไปถือยาในช่อง 3)
+    pressKey(Enum.KeyCode.Three, 0x33)
+    task.wait(kd)
+
+    -- 2. กดปุ่ม 3 ซ้ำอีกครั้ง (กดยาเพื่อปั้ม)
+    pressKey(Enum.KeyCode.Three, 0x33)
+    task.wait(kd + 0.04)
+
+    -- 3. กดปุ่ม 1 (สลับกลับมาถือปืนหลักในช่อง 1 ทันที เพื่อยกเลิกอนิเมชั่นและพร้อมยิง)
+    pressKey(Enum.KeyCode.One, 0x31)
+
+    -- สลับกลับมาถือปืนผ่าน Remote เพื่อความแน่นอน 100%
+    pcall(function()
+        task.wait(0.04)
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        local switchRemote = remotes and remotes:FindFirstChild("SwitchWeaponRequest")
+        if switchRemote then
+            switchRemote:FireServer(lastHeldWeaponSlot or 1)
+        end
+    end)
+end
+
+local function startAutoMed331Loop()
+    if isAutoMedLoopRunning then return end
+    isAutoMedLoopRunning = true
+
+    task.spawn(function()
+        local loopStart = tick()
+        local maxWaitTimeout = 30 -- ป้องกันค้างไม่เกิน 30 วินาที
+
+        while Med_Config.Enabled and (tick() - loopStart < maxWaitTimeout) do
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local isAlive = char and hum and hum.Health > 0 and char:GetAttribute("WarzDead") ~= true and LocalPlayer:GetAttribute("CSGO_Dead") ~= true
+
+            if not isAlive or hum.MaxHealth <= 0 then
+                break
+            end
+
+            -- ตรวจสอบว่าเลือดกลับมาเต็ม 100% แล้วหรือยัง (ตั้งแต่ 99.5% ขึ้นไป)
+            local currentHpPercent = (hum.Health / hum.MaxHealth) * 100
+            if currentHpPercent >= 99.5 then
+                break
+            end
+
+            local gameCd = tonumber(LocalPlayer:GetAttribute("WarzMedCdLeft")) or 0
+            if gameCd <= 0.05 then
+                performMed331Cycle()
+                lastMedUsedTick = tick()
+
+                -- รอให้เกมเริ่มคูลดาวน์ยาหรือรอรอบเวลาที่ตั้งไว้
+                local delayWait = math.max(0.1, tonumber(Med_Config.Delay) or 0.8)
+                local cdStart = tick()
+                while tick() - cdStart < delayWait do
+                    local cdLeft = tonumber(LocalPlayer:GetAttribute("WarzMedCdLeft")) or 0
+                    if cdLeft > 0.05 then
+                        -- กำลังติดคูลดาวน์ รอจนกว่าคูลดาวน์จะหมด
+                        while (tonumber(LocalPlayer:GetAttribute("WarzMedCdLeft")) or 0) > 0.05 and (tick() - cdStart < 3.5) do
+                            task.wait(0.05)
+                        end
+                        break
+                    end
+                    task.wait(0.05)
+                end
+            else
+                task.wait(0.05)
+            end
+            task.wait(0.05)
+        end
+
+        -- เมื่อปั้มยาเสร็จ (เลือดกลับมาเต็ม 100%) ให้สลับกลับมาถือปืนอัตโนมัติแน่นอน 100%
+        task.wait(0.05)
+        switchToGunDirect()
+
+        isAutoMedLoopRunning = false
+    end)
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.06)
+        if Med_Config.Enabled and not isAutoMedLoopRunning then
+            local char = LocalPlayer.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            local isAlive = char and hum and hum.Health > 0 and char:GetAttribute("WarzDead") ~= true and LocalPlayer:GetAttribute("CSGO_Dead") ~= true
+
+            if isAlive and hum.MaxHealth > 0 then
+                local currentHpPercent = (hum.Health / hum.MaxHealth) * 100
+                local healthLost = 100 - currentHpPercent
+
+                -- ตรวจสอบว่าเลือดลดลงไปเกินกว่า % ที่ตั้งไว้ (ค่าเริ่มต้น 10%)
+                if healthLost >= Med_Config.HealthLossPercent then
+                    startAutoMed331Loop()
+                end
+            end
+        end
+    end
+end)
+
+-- ========================================================
+-- ========================================================
+-- AUTO LOOT THREAD (LOOT AURA - HYBRID PROMPT & REMOTE ENGINE)
+-- ========================================================
+local function extractUid(item)
+    if not item then return nil end
+    local uid = item:GetAttribute("LootUid")
+        or item:GetAttribute("Uid")
+        or item:GetAttribute("ID")
+        or item:GetAttribute("DropId")
+        or item:GetAttribute("ItemId")
+    if uid then return uid end
+
+    for _, name in ipairs({"LootUid", "Uid", "ID", "DropId", "ItemId"}) do
+        local child = item:FindFirstChild(name)
+        if child and child:IsA("ValueBase") then
+            return child.Value
+        end
+    end
+
+    for _, d in ipairs(item:GetDescendants()) do
+        uid = d:GetAttribute("LootUid")
+            or d:GetAttribute("Uid")
+            or d:GetAttribute("ID")
+            or d:GetAttribute("DropId")
+            or d:GetAttribute("ItemId")
+        if uid then return uid end
+        for _, name in ipairs({"LootUid", "Uid", "ID", "DropId", "ItemId"}) do
+            local child = d:FindFirstChild(name)
+            if child and child:IsA("ValueBase") then
+                return child.Value
+            end
+        end
+    end
+    return nil
+end
+
+local function getPickupRemote()
+    local remotes = ReplicatedStorage:FindFirstChild("Remotes") or ReplicatedStorage
+    local p = remotes:FindFirstChild("PickupLoot")
+        or remotes:FindFirstChild("PickupItem")
+        or remotes:FindFirstChild("LootItem")
+        or remotes:FindFirstChild("Pickup")
+        or remotes:FindFirstChild("TakeItem")
+    if p then return p end
+    for _, d in ipairs(remotes:GetDescendants()) do
+        if d:IsA("RemoteEvent") then
+            local low = d.Name:lower()
+            if low:find("pickup") or low:find("loot") then
+                return d
+            end
+        end
+    end
+    return nil
+end
+
+local cachedDiscoveredItems = {}
+local lastDiscoveryScan = 0
+
+local function getDiscoveredItems()
+    local now = os.clock()
+    if now - lastDiscoveryScan < 0.1 and #cachedDiscoveredItems > 0 then
+        return cachedDiscoveredItems
+    end
+    lastDiscoveryScan = now
+
+    local discovered = {}
+    local seen = {}
+
+    local function recordItem(inst, name, pos, part, prompt)
+        if not inst or seen[inst] then return end
+        seen[inst] = true
+        table.insert(discovered, {
+            Instance = inst,
+            Name = name or inst.Name,
+            Position = pos,
+            Part = part,
+            Prompt = prompt
+        })
+    end
+
+    -- 1. Direct Scan of WarzLoot (The native loot folder in this game!)
+    local warzLoot = workspace:FindFirstChild("WarzLoot")
+    if warzLoot then
+        for _, item in ipairs(warzLoot:GetChildren()) do
+            local pos = getLootPosition(item)
+            local part = (item:IsA("BasePart") and item) or item:FindFirstChildWhichIsA("BasePart", true)
+            local n = item:GetAttribute("LootName") or item:GetAttribute("LootItemId") or item.Name
+            if pos and part then
+                recordItem(item, n, pos, part, nil)
+            end
+        end
+    end
+
+    -- 2. Scan other common loot folders
+    local otherFolders = {"Loot", "Drops", "Items", "DroppedItems", "Drop", "WorldLoot"}
+    for _, fName in ipairs(otherFolders) do
+        local f = workspace:FindFirstChild(fName)
+        if f then
+            for _, item in ipairs(f:GetChildren()) do
+                local pos = getLootPosition(item)
+                local part = (item:IsA("BasePart") and item) or item:FindFirstChildWhichIsA("BasePart", true)
+                local n = item:GetAttribute("LootName") or item:GetAttribute("LootItemId") or item.Name
+                if pos and part then
+                    recordItem(item, n, pos, part, nil)
+                end
+            end
+        end
+    end
+
+    -- 3. Scan workspace root items with Loot attributes
+    for _, child in ipairs(workspace:GetChildren()) do
+        if (child:IsA("Model") or child:IsA("BasePart")) and child.Name ~= "Terrain" and child.Name ~= "Camera" and not child:FindFirstChildOfClass("Humanoid") then
+            local uid = child:GetAttribute("LootUid") or child:GetAttribute("LootItemId") or child:GetAttribute("LootName")
+            if uid then
+                local pos = getLootPosition(child)
+                local part = (child:IsA("BasePart") and child) or child:FindFirstChildWhichIsA("BasePart", true)
+                local n = child:GetAttribute("LootName") or child:GetAttribute("LootItemId") or child.Name
+                if pos and part then
+                    recordItem(child, n, pos, part, nil)
+                end
+            end
+        end
+    end
+
+    cachedDiscoveredItems = discovered
+    return discovered
+end
+
+local function pickupSingleItem(item, uid, myHRP, directPrompt)
+    if not item then return end
+    local holdTime = math.clamp(tonumber(Item_Config.AutoLootHoldTime) or 1.1, 0.3, 3.0)
+
+    -- Method 1: RemoteEvent (WarZ native PickupLoot protocol: prep -> hold -> use)
+    local pickupRemote = getPickupRemote()
+    if pickupRemote and uid then
+        pcall(function() pickupRemote:FireServer(uid, "prep", 1) end)
+    end
+
+    -- Method 2: Native WarZ Client LootPickup module hook (hold begin)
+    pcall(function()
+        local client = LocalPlayer.PlayerScripts:FindFirstChild("Client")
+        local world = client and client:FindFirstChild("world")
+        local lpMod = world and world:FindFirstChild("LootPickup")
+        if lpMod then
+            local mod = require(lpMod)
+            if mod and mod.SetTouchHeld then
+                mod.SetTouchHeld(true)
+            end
+        end
+    end)
+
+    -- Method 3: Simulate keypress E via VirtualInputManager
+    pcall(function()
+        if VirtualInputManager then
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        end
+    end)
+
+    -- Method 4: ProximityPrompt fallback if present
+    local prompt = directPrompt or (item:IsA("ProximityPrompt") and item) or item:FindFirstChildWhichIsA("ProximityPrompt", true)
+    if prompt then
+        pcall(function()
+            prompt.Enabled = true
+            prompt.RequiresLineOfSight = false
+            prompt.MaxActivationDistance = 9999
+            prompt.HoldDuration = 0
+            if fireproximityprompt then
+                fireproximityprompt(prompt, 0)
+                fireproximityprompt(prompt)
+            end
+        end)
+    end
+
+    -- Method 5: ClickDetector trigger
+    for _, d in ipairs(item:GetDescendants()) do
+        if d:IsA("ClickDetector") then
+            pcall(function()
+                d.MaxActivationDistance = 9999
+                if fireclickdetector then
+                    fireclickdetector(d)
+                end
+            end)
+        end
+    end
+
+    -- Hold for full duration so the circle fills 100%!
+    task.wait(holdTime)
+
+    -- Finish pickup: commit "use"
+    if pickupRemote and uid then
+        pcall(function() pickupRemote:FireServer(uid, "use", 1) end)
+        pcall(function() pickupRemote:FireServer(uid) end)
+        pcall(function() pickupRemote:FireServer(tostring(uid)) end)
+    end
+
+    -- Release inputs
+    pcall(function()
+        if VirtualInputManager then
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        end
+    end)
+    pcall(function()
+        local client = LocalPlayer.PlayerScripts:FindFirstChild("Client")
+        local world = client and client:FindFirstChild("world")
+        local lpMod = world and world:FindFirstChild("LootPickup")
+        if lpMod then
+            local mod = require(lpMod)
+            if mod and mod.SetTouchHeld then
+                mod.SetTouchHeld(false)
+            end
+        end
+    end)
+end
+
+task.spawn(function()
+    while true do
+        task.wait(math.max(0.05, tonumber(Item_Config.AutoLootDelay) or 0.15))
+        if Item_Config.AutoLootEnabled then
+            local myChar = LocalPlayer.Character
+            local myHRP = myChar and (myChar:FindFirstChild("HumanoidRootPart") or myChar.PrimaryPart or myChar:FindFirstChild("Torso"))
+            local myPos = (myHRP and myHRP.Position) or (workspace.CurrentCamera and workspace.CurrentCamera.CFrame.Position)
+
+            if myPos then
+                local discoveredItems = getDiscoveredItems()
+                local maxRadius = math.max(5, tonumber(Item_Config.AutoLootRadius) or 25)
+
+                for _, data in ipairs(discoveredItems) do
+                    if not Item_Config.AutoLootEnabled then break end
+
+                    local pos = data.Position
+                    if pos then
+                        local dist = (pos - myPos).Magnitude
+                        if dist <= maxRadius then
+                            local item = data.Instance
+                            local name = data.Name
+                            local uid = extractUid(item)
+                            local itemId = item:GetAttribute("LootItemId") or name
+                            local cat, _ = getItemCategory(itemId)
+
+                            local canLoot = true
+                            if Item_Config.AutoLootFilterOnly then
+                                canLoot = shouldDisplayItem(name, itemId, cat)
+                            end
+
+                            if canLoot then
+                                task.spawn(function()
+                                    pickupSingleItem(item, uid, myHRP, data.Prompt)
+                                end)
+                                task.wait(math.max(0.04, tonumber(Item_Config.AutoLootDelay) or 0.15))
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- ========================================================
+-- MAIN RENDER STEPPED (AIMBOT, ESP & ITEMS)
+-- ========================================================
+RunService.RenderStepped:Connect(function()
+    Camera = workspace.CurrentCamera
+    if not Camera then return end
+
+    -- 0. INSTANT MUZZLE FLASH SUPPRESSION (Kill any viewmodel flash every frame)
+    if Combat_Config.NoMuzzleFlash then
+        for _, child in ipairs(Camera:GetChildren()) do
+            if child:IsA("Model") or child:IsA("BasePart") then
+                for _, sub in ipairs(child:GetDescendants()) do
+                    if sub:IsA("Light") then
+                        sub.Enabled = false
+                        sub.Brightness = 0
+                        sub.Range = 0
+                    elseif sub:IsA("BillboardGui") then
+                        sub.Enabled = false
+                        sub.Size = UDim2.new(0, 0, 0, 0)
+                    elseif sub:IsA("ParticleEmitter") then
+                        local sName = sub.Name:lower()
+                        if sName:find("flash") or sName:find("muzzle") or sName:find("fire") or sName:find("spark") or sName:find("smoke") or sName:find("circle") then
+                            sub.Enabled = false
+                            sub.Rate = 0
+                            sub.Transparency = NumberSequence.new(1)
+                            sub.Size = NumberSequence.new(0)
+                            sub.Texture = ""
+                            sub:Clear()
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    local viewportSize = Camera.ViewportSize
+    local screenCenter = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    local myChar = LocalPlayer.Character
+    local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
+    -- 1. FOV CIRCLE UPDATE (Hybrid ScreenGui + Drawing Circle, always visible when ShowFOVCircle is true)
+    pcall(function()
+        if Combat_Config.ShowFOVCircle then
+            local radius = math.max(10, tonumber(Combat_Config.FOVRadius) or 150)
+            local col = Combat_Config.FOVColor or Color3.fromRGB(255, 255, 255)
+
+            -- Update Drawing Circle
+            if FOVCircleDrawing then
+                FOVCircleDrawing.Visible = true
+                FOVCircleDrawing.Position = screenCenter
+                FOVCircleDrawing.Radius = radius
+                FOVCircleDrawing.Color = col
+            end
+
+            -- Update Native ScreenGui Circle
+            if not FOVScreenGui or not FOVScreenGui.Parent or not FOVCircleFrame then
+                setupFOVScreenGui()
+            end
+
+            if FOVCircleFrame then
+                FOVCircleFrame.Visible = true
+                FOVCircleFrame.Position = UDim2.fromOffset(screenCenter.X, screenCenter.Y)
+                FOVCircleFrame.Size = UDim2.fromOffset(radius * 2, radius * 2)
+                if FOVCircleStroke then
+                    FOVCircleStroke.Color = col
+                end
+            end
+        else
+            if FOVCircleDrawing then
+                FOVCircleDrawing.Visible = false
+            end
+            if FOVCircleFrame then
+                FOVCircleFrame.Visible = false
+            end
+        end
+    end)
+
+    -- 2. AIMBOT EXECUTION
+    pcall(function()
+        if Combat_Config.AimbotEnabled and isAimKeyDown() then
+            local target = getClosestPlayerToCenter(screenCenter)
+            if target then
+                local aimPart = getPlayerAimPart(target, Combat_Config.AimbotPart)
+                if aimPart then
+                    local aimPos = aimPart.Position
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(aimPos)
+                    local deltaX = screenPos.X - screenCenter.X
+                    local deltaY = screenPos.Y - screenCenter.Y
+                    local smoothness = math.max(1, tonumber(Combat_Config.Smoothness) or 5)
+
+                    local vFov = math.rad(Camera.FieldOfView)
+                    local hFov = 2 * math.atan(math.tan(vFov / 2) * (viewportSize.X / viewportSize.Y))
+                    local radPerPxX = hFov / viewportSize.X
+                    local radPerPxY = vFov / viewportSize.Y
+
+                    local cam = resolveWarzCamera()
+                    local curYaw = cam and cam.GetYaw and cam.GetYaw()
+                    local curPitch = cam and cam.GetPitch and cam.GetPitch()
+
+                    -- Mode 1: Hard Lock (Snaps directly to target)
+                    if Combat_Config.AimMode == "Hard Lock" then
+                        if onScreen and screenPos.Z > 0 and curYaw and curPitch then
+                            setCameraAngles(curYaw - deltaX * radPerPxX, curPitch - deltaY * radPerPxY)
+                        else
+                            local camPos = Camera.CFrame.Position
+                            local toAim = (aimPos - camPos).Unit
+                            local targetYaw = math.atan2(-toAim.X, -toAim.Z)
+                            local targetPitch = math.asin(math.clamp(toAim.Y, -1, 1))
+                            setCameraAngles(targetYaw, targetPitch)
+                        end
+
+                    -- Mode 2: Smooth Cam (Smooth angle interpolation)
+                    elseif Combat_Config.AimMode == "Smooth Cam" then
+                        if onScreen and screenPos.Z > 0 and curYaw and curPitch then
+                            local stepYaw = (deltaX * radPerPxX) / smoothness
+                            local stepPitch = (deltaY * radPerPxY) / smoothness
+                            setCameraAngles(curYaw - stepYaw, curPitch - stepPitch)
+                        elseif curYaw and curPitch then
+                            local camPos = Camera.CFrame.Position
+                            local toAim = (aimPos - camPos).Unit
+                            local targetYaw = math.atan2(-toAim.X, -toAim.Z)
+                            local targetPitch = math.asin(math.clamp(toAim.Y, -1, 1))
+                            local diffYaw = (targetYaw - curYaw + math.pi) % (2 * math.pi) - math.pi
+                            local diffPitch = targetPitch - curPitch
+                            setCameraAngles(curYaw + diffYaw / smoothness, curPitch + diffPitch / smoothness)
+                        end
+
+                    -- Mode 3: Mouse Delta (Pixel offset via mouse mover)
+                    elseif Combat_Config.AimMode == "Mouse Delta" then
+                        if onScreen and screenPos.Z > 0 and mousemoverel then
+                            mousemoverel(deltaX / smoothness, deltaY / smoothness)
+                        end
+                    end
+                end
+            end
+        end
+    end)
+
+    -- 3. PLAYER ESP UPDATE
+    pcall(function()
+        -- Ensure every player is in ESP cache
+        -- Ensure every other player is in ESP cache
+        for _, p in ipairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.UserId ~= LocalPlayer.UserId and not ESP_Cache[p] then
+                createESP(p)
+            end
+        end
+
+        local toRemove = {}
+        for p, _ in pairs(ESP_Cache) do
+            if not p or p == LocalPlayer or p.UserId == LocalPlayer.UserId or not p.Parent or p.Parent ~= Players then
+                table.insert(toRemove, p)
+            end
+        end
+        for _, p in ipairs(toRemove) do
+            removeESP(p)
+        end
+
+        local myPos = (myHRP and myHRP.Position) or (Camera and Camera.CFrame.Position)
+        local myChar = LocalPlayer.Character
+
+        for player, esp in pairs(ESP_Cache) do
+            if not player or player == LocalPlayer or player.UserId == LocalPlayer.UserId or not player.Parent or player.Parent ~= Players then
+                hideDrawing(esp)
+                continue
+            end
+
+            local char = player.Character
+            local liveAim = getPlayerVisualModel(player)
+            local targetModel = liveAim or char
+
+            -- STRICT GUARD: Never attach ESP to LocalPlayer's own model
+            if not targetModel or targetModel == myChar or (myChar and targetModel:IsDescendantOf(myChar)) then
+                hideDrawing(esp)
+                continue
+            end
+
+            local hrp = (liveAim and (liveAim:FindFirstChild("RootPart") or liveAim:FindFirstChildWhichIsA("BasePart"))) or (char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso") or char.PrimaryPart))
+            local hum = (liveAim and liveAim:FindFirstChildOfClass("Humanoid")) or (char and char:FindFirstChildOfClass("Humanoid"))
+            local head = (liveAim and liveAim:FindFirstChild("Head")) or (char and (char:FindFirstChild("Head") or char:FindFirstChild("head") or hrp))
+
+            local isValid = ESP_Config.Enabled 
+                and player.Parent == Players 
+                and targetModel ~= nil 
+                and targetModel:IsDescendantOf(workspace)
+                and hrp ~= nil 
+                and (not hum or hum.Health > 0)
+                and (char == nil or char:GetAttribute("WarzDead") ~= true)
+                and player:GetAttribute("CSGO_Dead") ~= true
+
+            if isValid and isTeammate(player) then
+                isValid = false
+            end
+
+            local dist = 0
+            if isValid and myPos and hrp then
+                dist = (myPos - hrp.Position).Magnitude
+                if dist > ESP_Config.MaxDistance then
+                    isValid = false
+                end
+            end
+
+            if isValid then
+                local color = getESPColor(player)
+
+                -- 1. Native Roblox Highlight (Chams) on targetModel
+                if ESP_Config.ShowHighlight and targetModel then
+                    if not esp.Highlight or esp.Highlight.Parent == nil or esp.Highlight.Adornee ~= targetModel then
+                        if esp.Highlight then pcall(function() esp.Highlight:Destroy() end) end
+                        local hl = Instance.new("Highlight")
+                        hl.Name = "WarZ_ESP_HL"
+                        hl.Adornee = targetModel
+                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        pcall(function() hl.Parent = targetModel end)
+                        esp.Highlight = hl
+                    end
+                    esp.Highlight.Enabled = true
+                    esp.Highlight.FillColor = color
+                    esp.Highlight.OutlineColor = ESP_Config.HighlightOutline or Color3.fromRGB(255, 255, 255)
+                    esp.Highlight.FillTransparency = ESP_Config.HighlightFillTransparency or 0.5
+                    esp.Highlight.OutlineTransparency = ESP_Config.HighlightOutlineTransparency or 0
+                else
+                    if esp.Highlight then esp.Highlight.Enabled = false end
+                end
+
+                -- Resolve visual animated positions (head & spine)
+                local headPos = nil
+                local spinePos = nil
+
+                if targetModel then
+                    for _, d in ipairs(targetModel:GetDescendants()) do
+                        if d:IsA("Bone") then
+                            if not headPos and (d.Name == "Bip01_Head" or d.Name:lower():find("head")) then
+                                local ok, cf = pcall(function() return d.TransformedWorldCFrame end)
+                                if ok and cf and cf.Position then headPos = cf.Position end
+                                if not headPos then
+                                    local ok2, wp = pcall(function() return d.WorldPosition end)
+                                    if ok2 and wp then headPos = wp end
+                                end
+                            elseif not spinePos and (d.Name:find("Spine") or d.Name:find("Pelvis") or d.Name:lower():find("torso")) then
+                                local ok, cf = pcall(function() return d.TransformedWorldCFrame end)
+                                if ok and cf and cf.Position then spinePos = cf.Position end
+                                if not spinePos then
+                                    local ok2, wp = pcall(function() return d.WorldPosition end)
+                                    if ok2 and wp then spinePos = wp end
+                                end
+                            end
+                        end
+                        if headPos and spinePos then break end
+                    end
+                end
+
+                if not headPos and head then headPos = head.Position end
+                if not spinePos and hrp then spinePos = hrp.Position end
+
+                local stance = (char and char:GetAttribute("WarzStance"))
+                    or (player:GetAttribute("WarzStance"))
+                    or (player:GetAttribute("CSGO_Stance"))
+                    or (char and char:GetAttribute("CSGO_Stance"))
+                    or ""
+                local lowStance = string.lower(tostring(stance))
+                local isProne = lowStance:find("prone") ~= nil or lowStance:find("lie") ~= nil
+                local isCrouching = lowStance:find("crouch") ~= nil
+
+                local diffY = headPos and hrp and (headPos.Y - hrp.Position.Y) or 4.5
+                local isRootAtFeet = diffY > 3.0
+
+                if not isProne and not isCrouching and headPos and hrp then
+                    if isRootAtFeet then
+                        if diffY < 2.2 then
+                            isProne = true
+                        elseif diffY < 3.6 then
+                            isCrouching = true
+                        end
+                    else
+                        if diffY < 0.5 then
+                            isProne = true
+                        elseif diffY < 1.1 then
+                            isCrouching = true
+                        end
+                    end
+                end
+
+                -- 2. Native Roblox 2D Box (BoxBillboard - 100% Locked to 3D character, zero desync)
+                if esp.BoxBillboard and hrp then
+                    esp.BoxBillboard.Adornee = hrp
+
+                    if isProne then
+                        esp.BoxBillboard.Size = UDim2.new(5.6, 0, 2.2, 0)
+                        esp.BoxBillboard.StudsOffset = isRootAtFeet and Vector3.new(0, 0.9, 0) or Vector3.new(0, -1.2, 0)
+                    elseif isCrouching then
+                        esp.BoxBillboard.Size = UDim2.new(3.8, 0, 4.0, 0)
+                        esp.BoxBillboard.StudsOffset = isRootAtFeet and Vector3.new(0, 1.8, 0) or Vector3.new(0, -0.4, 0)
+                    else
+                        -- Standing: Uniform 3.8 x 5.4 studs for every standing player
+                        esp.BoxBillboard.Size = UDim2.new(3.8, 0, 5.4, 0)
+                        esp.BoxBillboard.StudsOffset = isRootAtFeet and Vector3.new(0, 2.5, 0) or Vector3.new(0, -0.2, 0)
+                    end
+
+                    if esp.BoxBillboard.Parent ~= hrp then
+                        pcall(function() esp.BoxBillboard.Parent = hrp end)
+                    end
+                    esp.BoxBillboard.Enabled = ESP_Config.ShowBoxes
+                    if esp.BoxStroke then
+                        esp.BoxStroke.Color = color
+                    end
+                end
+
+                -- 3. Native Roblox Info (InfoBillboard - Crisp Name, Distance & Health Bar above head)
+                if esp.InfoBillboard and hrp then
+                    esp.InfoBillboard.Adornee = hrp
+
+                    local infoY = isRootAtFeet and (isProne and 2.4 or (isCrouching and 4.4 or 5.9)) or (isProne and 0.4 or (isCrouching and 2.2 or 3.2))
+                    esp.InfoBillboard.StudsOffset = Vector3.new(0, infoY, 0)
+
+                    if esp.InfoBillboard.Parent ~= hrp then
+                        pcall(function() esp.InfoBillboard.Parent = hrp end)
+                    end
+                    esp.InfoBillboard.Enabled = (ESP_Config.ShowNames or ESP_Config.ShowDistance or ESP_Config.ShowHealth)
+
+                    -- Name
+                    if esp.NameLabel then
+                        esp.NameLabel.Visible = ESP_Config.ShowNames
+                        esp.NameLabel.Text = (player.DisplayName and player.DisplayName ~= "" and player.DisplayName) or player.Name
+                        esp.NameLabel.TextSize = ESP_Config.TextSize or 13
+                    end
+
+                    -- Distance
+                    if esp.DistLabel then
+                        esp.DistLabel.Visible = ESP_Config.ShowDistance
+                        esp.DistLabel.Text = string.format("[%d m]", math.floor(dist))
+                        esp.DistLabel.TextSize = math.max(10, (ESP_Config.TextSize or 13) - 1)
+                    end
+
+                    -- Health Bar
+                    if esp.HpBg and esp.HpFill then
+                        esp.HpBg.Visible = ESP_Config.ShowHealth
+                        local curHp = (hum and hum.Health) or 100
+                        local maxHp = (hum and math.max(1, hum.MaxHealth)) or 100
+                        local healthFrac = math.clamp(curHp / maxHp, 0, 1)
+                        esp.HpFill.Size = UDim2.new(healthFrac, 0, 1, 0)
+                        esp.HpFill.BackgroundColor3 = Color3.fromRGB(
+                            math.floor(255 * (1 - healthFrac)),
+                            math.floor(255 * healthFrac),
+                            0
+                        )
+                    end
+                end
+
+                -- 4. Drawing Tracer Line (Points to player root if on screen)
+                if esp.Tracer then
+                    if ESP_Config.ShowTracers and hrp then
+                        local rootPos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                        if onScreen and rootPos.Z > 0 then
+                            esp.Tracer.Visible = true
+                            local origin = (ESP_Config.TracerOrigin == "Bottom") and Vector2.new(viewportSize.X / 2, viewportSize.Y) or screenCenter
+                            esp.Tracer.From = origin
+                            esp.Tracer.To = Vector2.new(rootPos.X, rootPos.Y)
+                            esp.Tracer.Color = color
+                        else
+                            esp.Tracer.Visible = false
+                        end
+                    else
+                        esp.Tracer.Visible = false
+                    end
+                end
+            else
+                hideDrawing(esp)
+            end
+        end
+    end)
+
+    -- 4. ITEM ESP & ITEM HIGHLIGHT UPDATE
+    pcall(function()
+        if Item_Config.ESPEnabled or Item_Config.HighlightEnabled then
+            local discoveredItems = getDiscoveredItems()
+            local activeSet = {}
+
+            for _, data in ipairs(discoveredItems) do
+                local item = data.Instance
+                local pos = data.Position
+                local part = data.Part
+                local name = data.Name
+                local dist = myHRP and pos and (pos - myHRP.Position).Magnitude or 0
+
+                if pos and part and dist <= Item_Config.ESPMaxDistance then
+                    local itemId = item:GetAttribute("LootItemId") or name
+                    local category, catColor = getItemCategory(itemId)
+
+                    if shouldDisplayItem(name, itemId, category) then
+                        activeSet[item] = true
+                        local espData = Item_ESP_Cache[item]
+                        if not espData then
+                            espData = { Gui = nil, Label = nil, Part = part, Highlight = nil }
+                            Item_ESP_Cache[item] = espData
+                        end
+
+                        -- A. Item 2D BillboardGui Text Label
+                        if Item_Config.ESPEnabled then
+                            if not espData.Gui or espData.Gui.Parent == nil then
+                                local bbg = Instance.new("BillboardGui")
+                                bbg.Name = "WarZ_Item_ESP"
+                                bbg.AlwaysOnTop = true
+                                bbg.Size = UDim2.new(0, 160, 0, 24)
+                                bbg.StudsOffset = Vector3.new(0, 1.2, 0)
+                                bbg.ClipsDescendants = false
+                                bbg.Adornee = part
+                                bbg.Parent = getSafeGuiParent()
+
+                                local lbl = Instance.new("TextLabel", bbg)
+                                lbl.Name = "ItemLabel"
+                                lbl.Size = UDim2.new(1, 0, 1, 0)
+                                lbl.BackgroundTransparency = 1
+                                lbl.Text = string.format("%s [%dm]", name, math.floor(dist))
+                                lbl.TextColor3 = catColor
+                                lbl.TextStrokeTransparency = 0
+                                lbl.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+                                lbl.TextSize = Item_Config.TextSize or 13
+                                lbl.Font = Enum.Font.SourceSansBold
+
+                                espData.Gui = bbg
+                                espData.Label = lbl
+                            else
+                                espData.Gui.Enabled = true
+                                espData.Gui.Adornee = part
+                                if espData.Label then
+                                    espData.Label.Text = string.format("%s [%dm]", name, math.floor(dist))
+                                    espData.Label.TextColor3 = catColor
+                                    espData.Label.TextSize = Item_Config.TextSize or 13
+                                end
+                            end
+                        else
+                            if espData.Gui then
+                                espData.Gui.Enabled = false
+                            end
+                        end
+
+                        -- B. Item 3D Native Highlight (Chams on Ground Model)
+                        if Item_Config.HighlightEnabled then
+                            if not espData.Highlight or espData.Highlight.Parent == nil or espData.Highlight.Adornee ~= item then
+                                if espData.Highlight then pcall(function() espData.Highlight:Destroy() end) end
+                                local hl = Instance.new("Highlight")
+                                hl.Name = "WarZ_Item_HL"
+                                hl.Adornee = item
+                                hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                                pcall(function() hl.Parent = item end)
+                                espData.Highlight = hl
+                            end
+                            espData.Highlight.Enabled = true
+                            espData.Highlight.FillColor = catColor
+                            espData.Highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            espData.Highlight.FillTransparency = Item_Config.HighlightFillTransparency or 0.4
+                            espData.Highlight.OutlineTransparency = Item_Config.HighlightOutlineTransparency or 0
+                        else
+                            if espData.Highlight then
+                                espData.Highlight.Enabled = false
+                            end
+                        end
+                    end
+                end
+            end
+
+            for item, espData in pairs(Item_ESP_Cache) do
+                if not activeSet[item] then
+                    if espData.Gui then
+                        espData.Gui.Enabled = false
+                    end
+                    if espData.Highlight then
+                        espData.Highlight.Enabled = false
+                    end
+                end
+            end
+        else
+            for _, espData in pairs(Item_ESP_Cache) do
+                if espData.Gui then
+                    espData.Gui.Enabled = false
+                end
+                if espData.Highlight then
+                    espData.Highlight.Enabled = false
+                end
+            end
+        end
+    end)
+end)
+
+-- ========================================================
+-- UI CREATION (FLUENT)
+-- ========================================================
+local Window = Fluent:CreateWindow({
+    Title = "Warz By Unique HUB",
+    SubTitle = "Visuals, Combat & Items",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(600, 520),
+    Acrylic = true,
+    Theme = "Dark",
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
+_G.WarzWindow = Window
+
+local Tabs = {
+    Combat = Window:AddTab({ Title = "Combat (ช่วยยิง/ยา)", Icon = "swords" }),
+    ESP = Window:AddTab({ Title = "ESP (มองทะลุ)", Icon = "eye" }),
+    Items = Window:AddTab({ Title = "Items (ไอเทม)", Icon = "package" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
+
+local Options = Fluent.Options
+
+do
+    Fluent:Notify({
+        Title = "Warz By Unique HUB Ready",
+        Content = "แก้ปัญหา: วง FOV แสดงผลตลอดเวลา, อัปเกรด Loot Aura 4 รูปแบบดูดของรอบตัว, เปลี่ยนชื่อสคริปต์เรียบร้อย!",
+        Duration = 5
+    })
+
+    ---------------------------------------------------------
+    -- TAB: COMBAT
+    ---------------------------------------------------------
+    Tabs.Combat:AddParagraph({
+        Title = "Aimbot System (ระบบช่วยเล็ง)",
+        Content = "Hard Lock (ล็อคตรงจุดเป้า 100%), Smooth Cam (หมุนกล้องสมูทตามค่าที่ตั้ง), Mouse Delta"
+    })
+
+    local ToggleAimbot = Tabs.Combat:AddToggle("AimbotMaster", {
+        Title = "Enable Aimbot (เปิดระบบช่วยเล็ง)",
+        Default = false
+    })
+    ToggleAimbot:OnChanged(function()
+        Combat_Config.AimbotEnabled = Options.AimbotMaster.Value
+    end)
+
+    local DropdownAimMode = Tabs.Combat:AddDropdown("AimMode", {
+        Title = "Aim Mode (โหมดของ Aimbot)",
+        Values = {"Hard Lock", "Smooth Cam", "Mouse Delta"},
+        Default = 1,
+        Multi = false
+    })
+    DropdownAimMode:OnChanged(function(val)
+        Combat_Config.AimMode = val
+    end)
+
+    local DropdownAimKey1 = Tabs.Combat:AddDropdown("AimKey1", {
+        Title = "Aim Trigger Key 1 (ปุ่มเล็งที่ 1)",
+        Description = "เลือกปุ่มหลักสำหรับล็อคเป้า",
+        Values = {"Right Click", "Left Click", "Left Alt", "Left Shift", "E", "C", "Always Active", "None"},
+        Default = 1,
+        Multi = false
+    })
+    DropdownAimKey1:OnChanged(function(val)
+        Combat_Config.AimKey1 = val
+    end)
+
+    local DropdownAimKey2 = Tabs.Combat:AddDropdown("AimKey2", {
+        Title = "Aim Trigger Key 2 (ปุ่มเล็งที่ 2 - สำรอง)",
+        Description = "เลือกปุ่มที่ 2 เช่น คลิกซ้าย (ไม่ว่าจะกดปุ่มไหนก็ล็อคเป้าทันที)",
+        Values = {"Left Click", "Right Click", "Left Alt", "Left Shift", "E", "C", "Always Active", "None"},
+        Default = 1,
+        Multi = false
+    })
+    DropdownAimKey2:OnChanged(function(val)
+        Combat_Config.AimKey2 = val
+    end)
+
+    local TargetPartDropdown = Tabs.Combat:AddDropdown("AimbotPart", {
+        Title = "Aim Target Part (จุดที่เล็ง)",
+        Values = {"Head", "HumanoidRootPart"},
+        Default = 1,
+        Multi = false
+    })
+    TargetPartDropdown:OnChanged(function(val)
+        Combat_Config.AimbotPart = val
+    end)
+
+    local SliderSmooth = Tabs.Combat:AddSlider("AimbotSmoothness", {
+        Title = "Smoothness (ความสมูทในการดูด)",
+        Description = "เลข 1 = ล็อคทันที, เลขมาก = สมูทมากดูดช้าลงอย่างเป็นธรรมชาติ",
+        Default = 5,
+        Min = 1,
+        Max = 25,
+        Rounding = 0,
+        Callback = function(val)
+            Combat_Config.Smoothness = val
+        end
+    })
+
+    local SliderFOV = Tabs.Combat:AddSlider("AimbotFOV", {
+        Title = "FOV Radius (รัศมีวงกลมเล็งกลางจอ)",
+        Default = 150,
+        Min = 50,
+        Max = 500,
+        Rounding = 0,
+        Callback = function(val)
+            Combat_Config.FOVRadius = val
+        end
+    })
+
+    local ToggleFOVCircle = Tabs.Combat:AddToggle("ShowFOVCircle", {
+        Title = "Show FOV Circle (แสดงวงกลมเล็งกลางจอ)",
+        Default = true
+    })
+    ToggleFOVCircle:OnChanged(function()
+        Combat_Config.ShowFOVCircle = Options.ShowFOVCircle.Value
+    end)
+
+    local ToggleWallCheck = Tabs.Combat:AddToggle("WallCheck", {
+        Title = "Wall Check (ไม่ล็อคเป้าหลังกำแพง)",
+        Default = true
+    })
+    ToggleWallCheck:OnChanged(function()
+        Combat_Config.WallCheck = Options.WallCheck.Value
+    end)
+
+    local ToggleNoMuzzleFlash = Tabs.Combat:AddToggle("NoMuzzleFlash", {
+        Title = "No Muzzle Flash (ปิดแสงแฟลชปากกระบอกปืน)",
+        Description = "ปิดแสงแฟลชและประกายไฟปากกระบอกปืน ไม่แสบตา แต่คงเส้นกระสุน (Bullet Tracer) ไว้ 100% เพื่อให้คุมปืนได้ง่าย",
+        Default = true
+    })
+    ToggleNoMuzzleFlash:OnChanged(function()
+        Combat_Config.NoMuzzleFlash = Options.NoMuzzleFlash.Value
+    end)
+
+    local ToggleBulletTracers = Tabs.Combat:AddToggle("BulletTracers", {
+        Title = "Bullet Tracer Enhancer (คงเส้นกระสุน 100% คุมปืนง่าย)",
+        Description = "แสดงและเน้นเส้นกระสุน (Bullet Tracers) ให้เห็นทิศทางกระสุนอย่างชัดเจน ช่วยในการคุมรีคอยล์และดึงเป้า",
+        Default = true
+    })
+    ToggleBulletTracers:OnChanged(function()
+        Combat_Config.BulletTracers = Options.BulletTracers.Value
+    end)
+
+    local SliderAimbotMaxDist = Tabs.Combat:AddSlider("AimbotMaxDist", {
+        Title = "Max Aim Distance (ระยะล็อคสูงสุด)",
+        Default = 600,
+        Min = 50,
+        Max = 1500,
+        Rounding = 0,
+        Callback = function(val)
+            Combat_Config.MaxAimbotDistance = val
+        end
+    })
+
+    Tabs.Combat:AddParagraph({
+        Title = "Auto Meds 3 3 1 (ระบบปั้มยาอัตโนมัติ 3 3 1)",
+        Content = "เมื่อเลือดลดลงไปตามที่ตั้ง (ค่าเริ่มต้น 10%) ระบบจะกดปุ่ม [3] -> [3] -> [1] อัตโนมัติวนซ้ำจนกว่าเลือดจะกลับมาเต็ม 100% แล้วสลับกลับมาถือปืนทันที"
+    })
+
+    local ToggleAutoMed = Tabs.Combat:AddToggle("AutoMedEnabled", {
+        Title = "Enable Auto Meds 3 3 1 (เปิดระบบปั้มยาวนจนเต็ม 100%)",
+        Default = false
+    })
+    ToggleAutoMed:OnChanged(function()
+        Med_Config.Enabled = Options.AutoMedEnabled.Value
+    end)
+
+    local SliderMedHpLoss = Tabs.Combat:AddSlider("MedHpLoss", {
+        Title = "Health Lost Trigger (%) (ใช้ยาเมื่อเลือดลดไปกี่ %)",
+        Description = "ค่าเริ่มต้น 10% = เมื่อเลือดลดลงไป 10% (เลือดเหลือต่ำกว่า 90%) จะเริ่มปั้มยาวนจนเต็ม 100% ทันที",
+        Default = 10,
+        Min = 1,
+        Max = 95,
+        Rounding = 0,
+        Callback = function(val)
+            Med_Config.HealthLossPercent = val
+        end
+    })
+
+    local SliderMedDelay = Tabs.Combat:AddSlider("MedDelay", {
+        Title = "Cooldown Delay (ดีเลย์ระหว่างรอบการปั้ม วินาที)",
+        Default = 0.8,
+        Min = 0.1,
+        Max = 5.0,
+        Rounding = 1,
+        Callback = function(val)
+            Med_Config.Delay = val
+        end
+    })
+
+    local SliderKeyDelay = Tabs.Combat:AddSlider("MedKeyDelay", {
+        Title = "3 3 1 Key Delay (ความเร็วการกดปุ่ม วินาที)",
+        Description = "ความเร็วในการกดคีย์ 3 -> 3 -> 1 (ค่าน้อย = กดไวมาก)",
+        Default = 0.08,
+        Min = 0.02,
+        Max = 0.3,
+        Rounding = 2,
+        Callback = function(val)
+            Med_Config.KeyDelay = val
+        end
+    })
+
+    ---------------------------------------------------------
+    -- TAB: ESP
+    ---------------------------------------------------------
+    Tabs.ESP:AddParagraph({
+        Title = "Player Visuals (ESP)",
+        Content = "มองผู้เล่นทะลุกำแพง พร้อมระบบแยกการทำงานอิสระ ไม่กระตุก ไม่แล็ก"
+    })
+
+    local ToggleMaster = Tabs.ESP:AddToggle("ESPMaster", {
+        Title = "Enable ESP (เปิดระบบมองทะลุ)",
+        Default = true
+    })
+    ToggleMaster:OnChanged(function(val)
+        if val ~= nil then
+            ESP_Config.Enabled = val
+        elseif Options.ESPMaster then
+            ESP_Config.Enabled = Options.ESPMaster.Value
+        end
+    end)
+
+    local ToggleTeamCheck = Tabs.ESP:AddToggle("TeamCheck", {
+        Title = "Team Check (ไม่มองเพื่อนร่วมทีม)",
+        Default = false
+    })
+    ToggleTeamCheck:OnChanged(function()
+        ESP_Config.TeamCheck = Options.TeamCheck.Value
+    end)
+
+    local ToggleHighlight = Tabs.ESP:AddToggle("ShowHighlight", {
+        Title = "Chams / Highlight (ไฮไลท์เรืองแสงรอบตัว)",
+        Default = true
+    })
+    ToggleHighlight:OnChanged(function()
+        ESP_Config.ShowHighlight = Options.ShowHighlight.Value
+    end)
+
+    local ToggleBoxes = Tabs.ESP:AddToggle("ShowBoxes", {
+        Title = "2D Boxes (กรอบสี่เหลี่ยมรอบตัว)",
+        Default = true
+    })
+    ToggleBoxes:OnChanged(function()
+        ESP_Config.ShowBoxes = Options.ShowBoxes.Value
+    end)
+
+    local ToggleNames = Tabs.ESP:AddToggle("ShowNames", {
+        Title = "Player Names (แสดงชื่อผู้เล่น)",
+        Default = true
+    })
+    ToggleNames:OnChanged(function()
+        ESP_Config.ShowNames = Options.ShowNames.Value
+    end)
+
+    local ToggleHealth = Tabs.ESP:AddToggle("ShowHealth", {
+        Title = "Health Bar (หลอดเลือดข้างลำตัว)",
+        Default = true
+    })
+    ToggleHealth:OnChanged(function()
+        ESP_Config.ShowHealth = Options.ShowHealth.Value
+    end)
+
+    local ToggleDistance = Tabs.ESP:AddToggle("ShowDistance", {
+        Title = "Distance (แสดงระยะห่างเมตร)",
+        Default = true
+    })
+    ToggleDistance:OnChanged(function()
+        ESP_Config.ShowDistance = Options.ShowDistance.Value
+    end)
+
+    local ToggleTracers = Tabs.ESP:AddToggle("ShowTracers", {
+        Title = "Tracers (เส้นนำสายตาชี้หาผู้เล่น)",
+        Default = false
+    })
+    ToggleTracers:OnChanged(function()
+        ESP_Config.ShowTracers = Options.ShowTracers.Value
+    end)
+
+    local TracerOriginDropdown = Tabs.ESP:AddDropdown("TracerOrigin", {
+        Title = "Tracer Origin (จุดเริ่มของเส้น)",
+        Values = {"Bottom", "Middle"},
+        Default = 1,
+        Multi = false
+    })
+    TracerOriginDropdown:OnChanged(function(val)
+        ESP_Config.TracerOrigin = val
+    end)
+
+    local SliderMaxDist = Tabs.ESP:AddSlider("MaxDistance", {
+        Title = "Max Distance (ระยะมองสูงสุด)",
+        Default = 1500,
+        Min = 100,
+        Max = 3000,
+        Rounding = 0,
+        Callback = function(val)
+            ESP_Config.MaxDistance = val
+        end
+    })
+
+    local SliderTextSize = Tabs.ESP:AddSlider("TextSize", {
+        Title = "Text Size (ขนาดตัวอักษร)",
+        Default = 13,
+        Min = 10,
+        Max = 20,
+        Rounding = 0,
+        Callback = function(val)
+            ESP_Config.TextSize = val
+        end
+    })
+
+    local EnemyColorPicker = Tabs.ESP:AddColorpicker("EnemyColor", {
+        Title = "Enemy Color (สีผู้เล่นศัตรู)",
+        Default = Color3.fromRGB(255, 60, 60)
+    })
+    EnemyColorPicker:OnChanged(function(val)
+        ESP_Config.EnemyColor = val or (Options.EnemyColor and Options.EnemyColor.Value) or Color3.fromRGB(255, 60, 60)
+    end)
+
+    local TeamColorPicker = Tabs.ESP:AddColorpicker("TeamColor", {
+        Title = "Team Color (สีเพื่อนร่วมทีม)",
+        Default = Color3.fromRGB(60, 180, 255)
+    })
+    TeamColorPicker:OnChanged(function(val)
+        ESP_Config.TeamColor = val or (Options.TeamColor and Options.TeamColor.Value) or Color3.fromRGB(60, 180, 255)
+    end)
+
+    ---------------------------------------------------------
+    -- TAB: ITEMS
+    ---------------------------------------------------------
+    Tabs.Items:AddParagraph({
+        Title = "Dropped Item Visuals (มองไอเทมบนพื้น)",
+        Content = "แสดงตำแหน่ง ชื่อ และระยะห่างของไอเทมที่ดรอปอยู่ สามารถเลือกชื่อไอเทมและหมวดหมู่ที่ต้องการมองได้"
+    })
+
+    local ToggleItemESP = Tabs.Items:AddToggle("ItemESPMaster", {
+        Title = "Enable Item ESP (เปิดมองชื่อไอเทมบนพื้น)",
+        Default = false
+    })
+    ToggleItemESP:OnChanged(function()
+        Item_Config.ESPEnabled = Options.ItemESPMaster.Value
+    end)
+
+    local ToggleItemHighlight = Tabs.Items:AddToggle("ItemHighlightMaster", {
+        Title = "Enable Item Highlight (เปิดไฮไลท์ไอเทมเรืองแสง 3D)",
+        Description = "เปิดเรืองแสงโมเดลไอเทมบนพื้นตามสีของแต่ละหมวดหมู่ทะลุกำแพง",
+        Default = true
+    })
+    ToggleItemHighlight:OnChanged(function()
+        Item_Config.HighlightEnabled = Options.ItemHighlightMaster.Value
+    end)
+
+    local SliderItemDist = Tabs.Items:AddSlider("ItemESPMaxDist", {
+        Title = "Item ESP Distance (ระยะมองไอเทมสูงสุด)",
+        Default = 500,
+        Min = 50,
+        Max = 2000,
+        Rounding = 0,
+        Callback = function(val)
+            Item_Config.ESPMaxDistance = val
+        end
+    })
+
+    local DropdownItemFilter = Tabs.Items:AddDropdown("ItemCategoryFilter", {
+        Title = "Filter Categories (เลือกหมวดหมู่ไอเทมที่จะมอง)",
+        Values = {"Weapons", "Ammo", "Medical", "Shields", "Armor", "Attachments", "Other"},
+        Default = {"Weapons", "Ammo", "Medical", "Shields", "Armor", "Attachments", "Other"},
+        Multi = true
+    })
+    DropdownItemFilter:OnChanged(function(val)
+        Item_Config.FilterWeapons = val["Weapons"] == true
+        Item_Config.FilterAmmo = val["Ammo"] == true
+        Item_Config.FilterMedical = val["Medical"] == true
+        Item_Config.FilterShields = val["Shields"] == true
+        Item_Config.FilterArmor = val["Armor"] == true
+        Item_Config.FilterAttachments = val["Attachments"] == true
+        Item_Config.FilterOther = val["Other"] == true
+    end)
+
+    local DropdownItemNames = Tabs.Items:AddDropdown("ItemNameMultiFilter", {
+        Title = "Select Items to Filter (เลือกชื่อไอเทมที่ต้องการมอง)",
+        Description = "เลือกได้หลายอย่างพร้อมกัน (ถ้าไม่เลือกเลย = แสดงทั้งหมดตามหมวดหมู่ด้านบน)",
+        Values = ItemNamesList,
+        Default = {},
+        Multi = true
+    })
+    DropdownItemNames:OnChanged(function(val)
+        Item_Config.SelectedItems = val
+    end)
+
+    Tabs.Items:AddButton({
+        Title = "Clear Selected Items (ล้างชื่อไอเทมที่เลือกทั้งหมด)",
+        Description = "กดเพื่อเคลียร์ตัวเลือกไอเทมทั้งหมด กลับสู่โหมดแสดงตามหมวดหมู่",
+        Callback = function()
+            DropdownItemNames:SetValue({})
+            Item_Config.SelectedItems = {}
+            Fluent:Notify({
+                Title = "Item Filter Reset",
+                Content = "ล้างการเลือกชื่อไอเทมเรียบร้อย (แสดงตามหมวดหมู่)",
+                Duration = 3
+            })
+        end
+    })
+
+    Tabs.Items:AddParagraph({
+        Title = "Item Category Colors (เลือกสีประจำแต่ละหมวดหมู่)",
+        Content = "คลิกเพื่อเลือกสีได้ทันทีจากพาเลทสี (ทั้งไฮไลท์เรืองแสง 3D และตัวหนังสือ)"
+    })
+
+    local ColorWeaponsPicker = Tabs.Items:AddColorpicker("ColorWeapons", {
+        Title = "Weapons (ปืน - สีฟ้า/น้ำเงิน)",
+        Default = Color3.fromRGB(0, 200, 255)
+    })
+    ColorWeaponsPicker:OnChanged(function(val)
+        Item_Config.ColorWeapons = val or (Options.ColorWeapons and Options.ColorWeapons.Value) or Color3.fromRGB(0, 200, 255)
+    end)
+
+    local ColorMedicalPicker = Tabs.Items:AddColorpicker("ColorMedical", {
+        Title = "Medical (ยา - สีเขียว)",
+        Default = Color3.fromRGB(50, 255, 100)
+    })
+    ColorMedicalPicker:OnChanged(function(val)
+        Item_Config.ColorMedical = val or (Options.ColorMedical and Options.ColorMedical.Value) or Color3.fromRGB(50, 255, 100)
+    end)
+
+    local ColorShieldsPicker = Tabs.Items:AddColorpicker("ColorShields", {
+        Title = "Shields (โล่/บังเกอร์ - สีแดง)",
+        Default = Color3.fromRGB(255, 50, 50)
+    })
+    ColorShieldsPicker:OnChanged(function(val)
+        Item_Config.ColorShields = val or (Options.ColorShields and Options.ColorShields.Value) or Color3.fromRGB(255, 50, 50)
+    end)
+
+    local ColorArmorPicker = Tabs.Items:AddColorpicker("ColorArmor", {
+        Title = "Armor (เกราะ/หมวก/กระเป๋า - สีม่วง)",
+        Default = Color3.fromRGB(180, 50, 255)
+    })
+    ColorArmorPicker:OnChanged(function(val)
+        Item_Config.ColorArmor = val or (Options.ColorArmor and Options.ColorArmor.Value) or Color3.fromRGB(180, 50, 255)
+    end)
+
+    local ColorAmmoPicker = Tabs.Items:AddColorpicker("ColorAmmo", {
+        Title = "Ammo (กระสุน/แม็กกาซีน - สีส้ม)",
+        Default = Color3.fromRGB(255, 160, 20)
+    })
+    ColorAmmoPicker:OnChanged(function(val)
+        Item_Config.ColorAmmo = val or (Options.ColorAmmo and Options.ColorAmmo.Value) or Color3.fromRGB(255, 160, 20)
+    end)
+
+    local ColorAttachmentsPicker = Tabs.Items:AddColorpicker("ColorAttachments", {
+        Title = "Attachments (อุปกรณ์แต่ง/กล้อง - สีชมพู)",
+        Default = Color3.fromRGB(255, 100, 200)
+    })
+    ColorAttachmentsPicker:OnChanged(function(val)
+        Item_Config.ColorAttachments = val or (Options.ColorAttachments and Options.ColorAttachments.Value) or Color3.fromRGB(255, 100, 200)
+    end)
+
+    local ColorOtherPicker = Tabs.Items:AddColorpicker("ColorOther", {
+        Title = "Other (ไอเทมอื่นๆ - สีขาว)",
+        Default = Color3.fromRGB(230, 230, 230)
+    })
+    ColorOtherPicker:OnChanged(function(val)
+        Item_Config.ColorOther = val or (Options.ColorOther and Options.ColorOther.Value) or Color3.fromRGB(230, 230, 230)
+    end)
+
+    Tabs.Items:AddParagraph({
+        Title = "Auto Loot System (ระบบเก็บของรอบตัวอัตโนมัติ)",
+        Content = "ดูดและเก็บไอเทมที่ดรอปอยู่รอบตัวเข้ากระเป๋าอัตโนมัติ สามารถตั้งระยะและความเร็วได้"
+    })
+
+    local ToggleAutoLoot = Tabs.Items:AddToggle("AutoLootMaster", {
+        Title = "Enable Auto Loot (เปิดเก็บของรอบตัวอัตโนมัติ)",
+        Default = false
+    })
+    ToggleAutoLoot:OnChanged(function(val)
+        if val ~= nil then
+            Item_Config.AutoLootEnabled = val
+        elseif Options.AutoLootMaster then
+            Item_Config.AutoLootEnabled = Options.AutoLootMaster.Value
+        end
+    end)
+
+    local SliderLootRadius = Tabs.Items:AddSlider("AutoLootRadius", {
+        Title = "Auto Loot Radius (ระยะเก็บของ - สตัด/เมตร)",
+        Description = "กำหนดรัศมีวงรอบตัวที่จะดูดเก็บไอเทม (ค่าเริ่มต้น 25)",
+        Default = 25,
+        Min = 5,
+        Max = 100,
+        Rounding = 0,
+        Callback = function(val)
+            Item_Config.AutoLootRadius = val
+        end
+    })
+
+    local SliderLootHold = Tabs.Items:AddSlider("AutoLootHoldTime", {
+        Title = "Hold Duration (เวลากดเก็บของค้างให้เต็มหลอด - วินาที)",
+        Description = "ระยะเวลากดค้างให้หลอดเต็ม 100% เพื่อให้ของเข้าตัว (ค่าเริ่มต้น 1.1s, ปรับได้สูงสุด 3.0s)",
+        Default = 1.1,
+        Min = 0.3,
+        Max = 3.0,
+        Rounding = 1,
+        Callback = function(val)
+            Item_Config.AutoLootHoldTime = val
+        end
+    })
+
+    local SliderLootDelay = Tabs.Items:AddSlider("AutoLootDelay", {
+        Title = "Auto Loot Speed / Delay (ความเร็วหน่วงระหว่างชิ้น วินาที)",
+        Description = "ระยะเวลาหน่วงระหว่างการเก็บของแต่ละชิ้น (ค่าเริ่มต้น 0.15s, ปรับได้สูงสุด 3.0s)",
+        Default = 0.15,
+        Min = 0.05,
+        Max = 3.0,
+        Rounding = 2,
+        Callback = function(val)
+            Item_Config.AutoLootDelay = val
+        end
+    })
+
+    local ToggleLootFilterOnly = Tabs.Items:AddToggle("LootFilterOnly", {
+        Title = "Loot Filtered Items Only (เก็บเฉพาะไอเทมที่เปิดมองไว้)",
+        Description = "เปิด = เก็บเฉพาะไอเทมที่ผ่านการเลือกในหมวดหมู่หรือชื่อด้านบน, ปิด = เก็บทุกชิ้น",
+        Default = false
+    })
+    ToggleLootFilterOnly:OnChanged(function()
+        Item_Config.AutoLootFilterOnly = Options.LootFilterOnly.Value
+    end)
+end
+
+-- Save / Interface Managers
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({})
+
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/WarzByUniqueHUB")
+
+    InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+    SaveManager:BuildConfigSection(Tabs.Settings)
+
+    -- ══════════════════════════════════════════════════════════
+    -- KEY SYSTEM & ACCOUNT SETTINGS (แท็บการตั้งค่าระบบคีย์)
+    -- ══════════════════════════════════════════════════════════
+    local KeySection = Tabs.Settings:AddSection("Key System & Security (ระบบคีย์)")
+    Tabs.Settings:AddParagraph({
+        Title = "Key System Status",
+        Content = string.format("สถานะ: ผ่านการตรวจสอบแล้ว (Active)\nHWID: %s\nระบบป้องกัน: 1 Key ต่อ 1 Device", KeySystem.GetHWID())
+    })
+    Tabs.Settings:AddButton({
+        Title = "Copy HWID (คัดลอกรหัสเครื่อง)",
+        Description = "คัดลอก Hardware ID เพื่อส่งให้แอดมินปลดล็อคหรือผูกคีย์",
+        Callback = function()
+            KeySystem.CopyHWID()
+        end
+    })
+    Tabs.Settings:AddButton({
+        Title = "Logout / Change Key (เปลี่ยนคีย์)",
+        Description = "ล้างข้อมูลคีย์ที่จำไว้ และเปิดหน้าต่างใส่คีย์ใหม่",
+        Callback = function()
+            KeySystem.Logout()
+            Fluent:Notify({
+                Title = "Key System",
+                Content = "ออกจากระบบเรียบร้อย กำลังเปิดหน้าต่างใส่คีย์ใหม่...",
+                Duration = 2
+            })
+            task.wait(0.5)
+            pcall(function()
+                if Window and Window.Destroy then
+                    Window:Destroy()
+                elseif Fluent and Fluent.GUI then
+                    Fluent.GUI:Destroy()
+                end
+            end)
+            KeySystem.OpenUI(KeySystem.Config, RunWarzScript)
+        end
+    })
+
+    Window:SelectTab(1)
+    SaveManager:LoadAutoloadConfig()
+end
+
+-- ========================================================
+-- EXECUTE KEY SYSTEM ENTRY POINT
+-- ========================================================
+KeySystem.Start(KeySystem.Config, RunWarzScript)
