@@ -34,7 +34,7 @@ local KeySystem = {
 -- [ ⚙️ CONFIGURATION: ตั้งค่าระบบคีย์ที่นี่ ]
 KeySystem.Config = {
     HubName = "Warz By Unique HUB",
-    Subtitle = "KEY SYSTEM • 1 KEY PER 1 DEVICE",
+    Subtitle = "VISUALS & COMBAT • TIME-LIMITED KEY",
 
     -- 1. ลิงก์ไฟล์ pskeys.txt ดิบ (Raw) บน GitHub สำหรับตรวจสอบคีย์
     KeysUrl = "https://raw.githubusercontent.com/Un1queHUB/Project-S/refs/heads/main/pskeys.txt",
@@ -56,7 +56,7 @@ KeySystem.Config = {
 
     -- หากเป็น true: คีย์บน GitHub จะต้องมี :HWID เท่านั้นถึงจะเข้าได้ (ป้องกันคนเอาคีย์ว่างไปแชร์กัน)
     -- หากเป็น false: อนุญาตให้คีย์ที่ยังไม่มี :HWID ถูกผูกกับเครื่องแรกที่นำไปใช้
-    StrictHwidOnly = true,
+    StrictHwidOnly = false,
 
     -- 3. ชื่อไฟล์เซฟคีย์ในเครื่องผู้ใช้ (ระบบจำคีย์ / Auto-Login)
     SaveFileName = "WarzUniqueHUB_SavedKey.json",
@@ -737,44 +737,83 @@ function KeySystem.VerifyOnline(inputKey, cfg)
         end
 
         -- กรณีมี GitHub Token: Auto-Commit ผูก HWID และเวลาหมดอายุขึ้น GitHub ทันที!
-        if hasToken and fileSha and req and cfg.GitHubOwner and cfg.GitHubRepo and cfg.GitHubPath then
-            lines[targetLineIndex] = newLine
-            local newContent = table.concat(lines, "\n")
-            local newBase64 = base64Encode(newContent)
-
-            local putUrl = string.format("https://api.github.com/repos/%s/%s/contents/%s", cfg.GitHubOwner, cfg.GitHubRepo, cfg.GitHubPath)
-            local putOk, putResp = pcall(function()
-                return req({
-                    Url = putUrl,
-                    Method = "PUT",
-                    Headers = {
-                        ["Authorization"] = "Bearer " .. cfg.GitHubToken,
-                        ["Accept"] = "application/vnd.github.v3+json",
-                        ["User-Agent"] = "Warz-UniqueHUB-KeySystem",
-                        ["Content-Type"] = "application/json"
-                    },
-                    Body = HttpService:JSONEncode({
-                        message = "Auto-Lock Key " .. matchedParsed.key .. " (" .. (expireDateStr or "LIFETIME") .. ")",
-                        content = newBase64,
-                        sha = fileSha
+        if hasToken and req and cfg.GitHubOwner and cfg.GitHubRepo and cfg.GitHubPath then
+            -- หากยังไม่มี fileSha ให้ดึง SHA ล่าสุดจาก GitHub REST API ก่อน
+            if not fileSha then
+                local getUrl = string.format("https://api.github.com/repos/%s/%s/contents/%s", cfg.GitHubOwner, cfg.GitHubRepo, cfg.GitHubPath)
+                local gOk, gResp = pcall(function()
+                    return req({
+                        Url = getUrl,
+                        Method = "GET",
+                        Headers = {
+                            ["Authorization"] = "Bearer " .. cfg.GitHubToken,
+                            ["Accept"] = "application/vnd.github.v3+json",
+                            ["User-Agent"] = "Warz-UniqueHUB-KeySystem"
+                        }
                     })
-                })
-            end)
+                end)
+                if gOk and gResp and gResp.Body then
+                    local jOk, d = pcall(function() return HttpService:JSONDecode(gResp.Body) end)
+                    if jOk and d and d.sha then
+                        fileSha = d.sha
+                        if d.content then
+                            local fresh = base64Decode(d.content)
+                            if fresh and fresh ~= "" then
+                                local freshLines = {}
+                                for fl in string.gmatch(fresh, "[^\r\n]+") do table.insert(freshLines, fl) end
+                                for fIdx, fl in ipairs(freshLines) do
+                                    local p = parseKeyLine(fl)
+                                    if p and (p.key == matchedParsed.key) then
+                                        targetLineIndex = fIdx
+                                        lines = freshLines
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+            end
 
-            if putOk and putResp and (putResp.StatusCode == 200 or putResp.StatusCode == 201) then
-                KeySystem.CurrentKey = matchedParsed.key
-                KeySystem.ExpireTime = expireTimestamp
-                KeySystem.ExpireStr = expireDateStr
-                KeySystem.IsLifetime = (duration == nil or duration <= 0)
-                KeySystem.Verified = true
-                saveKeyLocal(cfg.SaveFileName, matchedParsed.key, myHwid, expireTimestamp, expireDateStr)
+            if fileSha then
+                lines[targetLineIndex] = newLine
+                local newContent = table.concat(lines, "\n")
+                local newBase64 = base64Encode(newContent)
 
-                local successMsg = KeySystem.IsLifetime
-                    and "คีย์ถูกต้อง! สิทธิ์ใช้งานถาวร (บันทึกล็อคเครื่องขึ้น GitHub เรียบร้อย)"
-                    or ("คีย์ถูกต้อง! เปิดใช้งานสำเร็จ (หมดอายุ: " .. expireDateStr .. ")")
-                return true, successMsg, (duration and duration > 0 and duration or math.huge)
-            else
-                warn("[KeySystem] เกิดข้อผิดพลาดในการ Auto-Commit ขึ้น GitHub:", putResp and putResp.Body)
+                local putUrl = string.format("https://api.github.com/repos/%s/%s/contents/%s", cfg.GitHubOwner, cfg.GitHubRepo, cfg.GitHubPath)
+                local putOk, putResp = pcall(function()
+                    return req({
+                        Url = putUrl,
+                        Method = "PUT",
+                        Headers = {
+                            ["Authorization"] = "Bearer " .. cfg.GitHubToken,
+                            ["Accept"] = "application/vnd.github.v3+json",
+                            ["User-Agent"] = "Warz-UniqueHUB-KeySystem",
+                            ["Content-Type"] = "application/json"
+                        },
+                        Body = HttpService:JSONEncode({
+                            message = "Auto-Lock Key " .. matchedParsed.key .. " to HWID " .. myHwid .. " (" .. (expireDateStr or "LIFETIME") .. ")",
+                            content = newBase64,
+                            sha = fileSha
+                        })
+                    })
+                end)
+
+                if putOk and putResp and (putResp.StatusCode == 200 or putResp.StatusCode == 201) then
+                    KeySystem.CurrentKey = matchedParsed.key
+                    KeySystem.ExpireTime = expireTimestamp
+                    KeySystem.ExpireStr = expireDateStr
+                    KeySystem.IsLifetime = (duration == nil or duration <= 0)
+                    KeySystem.Verified = true
+                    saveKeyLocal(cfg.SaveFileName, matchedParsed.key, myHwid, expireTimestamp, expireDateStr)
+
+                    local successMsg = KeySystem.IsLifetime
+                        and "คีย์ถูกต้อง! สิทธิ์ใช้งานถาวร (บันทึกล็อคเครื่องขึ้น GitHub เรียบร้อย)"
+                        or ("คีย์ถูกต้อง! เปิดใช้งานสำเร็จ (หมดอายุ: " .. expireDateStr .. ")")
+                    return true, successMsg, (duration and duration > 0 and duration or math.huge)
+                else
+                    warn("[KeySystem] เกิดข้อผิดพลาดในการ Auto-Commit ขึ้น GitHub:", putResp and putResp.Body)
+                end
             end
         end
 
@@ -966,7 +1005,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     })
 
     Create("TextLabel", {
-        Text = cfg.Subtitle or "KEY SYSTEM • 1 KEY PER 1 DEVICE",
+        Text = cfg.Subtitle or "VISUALS & COMBAT • TIME-LIMITED KEY",
         Font = Enum.Font.Gotham,
         TextSize = 10,
         TextColor3 = KeyTheme.TextMuted,
