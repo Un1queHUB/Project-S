@@ -23,8 +23,12 @@ end
 -- ══════════════════ KEY SYSTEM MODULE ══════════════════
 local KeySystem = {
     CurrentKey = nil,
+    ExpireTime = nil,
+    ExpireStr = nil,
+    IsLifetime = false,
     Verified = false,
     _WatchdogRunning = false,
+    _WatermarkGui = nil,
 }
 
 -- [ ⚙️ CONFIGURATION: ตั้งค่าระบบคีย์ที่นี่ ]
@@ -47,7 +51,6 @@ KeySystem.Config = {
         3. Repository access: เลือก "Only select repositories" แล้วเลือก Repo "Project-S"
         4. Permissions -> Repository permissions -> Contents: เลือก "Read and write"
         5. กด Generate แล้วนำ Token (เช่น github_pat_xxxx) มาวางในช่องด้านล่าง
-        * หากไม่ได้ใส่ Token ("") ระบบจะยังคงตรวจคีย์ผ่าน GitHub Raw ได้ตามปกติ และแอดมินสามารถนำ HWID ของลูกค้าไปพิมพ์ใส่ใน pskeys.txt เอง (KEY:HWID)
     --]]
     GitHubToken = "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",
 
@@ -64,8 +67,8 @@ KeySystem.Config = {
     -- 5. เปิดใช้งานระบบล็อกอินอัตโนมัติ (จำคีย์ไม่ต้องพิมพ์ซ้ำ)
     AutoLogin = true,
 
-    -- 6. ตรวจสอบคีย์ในพื้นหลังทุกๆ N วินาที (หากคีย์โดนลบขณะเล่นอยู่ จะปิดโปรแกรมแล้วเด้ง UI ให้ใส่คีย์ใหม่)
-    WatchdogInterval = 300,
+    -- 6. ตรวจสอบคีย์ในพื้นหลังทุกๆ N วินาที (ปรับเป็น 10-15 วินาที เพื่อให้คีย์เทส 1 นาทีตัดการทำงานได้อย่างแม่นยำ)
+    WatchdogInterval = 10,
 }
 
 -- ══════════════════ THEME / UI COLORS ══════════════════
@@ -213,6 +216,237 @@ local function base64Decode(data)
     return table.concat(result)
 end
 
+-- ══════════════════ TIME & DATE PROTECTION ENGINE ══════════════════
+-- ตรวจสอบเวลาจริงผ่าน Roblox Server เพื่อป้องกันการโกงเวลาเครื่อง Windows
+local function getServerNow()
+    local t = nil
+    pcall(function()
+        if workspace and workspace.GetServerTimeNow then
+            t = workspace:GetServerTimeNow()
+        end
+    end)
+    if not t or t <= 0 then
+        pcall(function()
+            t = os.time()
+        end)
+    end
+    return math.floor(t or 0)
+end
+
+-- แปลงเวลา Timestamp เป็นฟอร์แมต YYYY-MM-DD-HH:MM (UTC มาตรฐานตรงกันทั่วโลก)
+local function formatTimestamp(ts)
+    local d = nil
+    pcall(function()
+        d = os.date("!*t", math.floor(ts))
+    end)
+    if d and d.year and d.month and d.day and d.hour and d.min then
+        return string.format("%04d-%02d-%02d-%02d:%02d", d.year, d.month, d.day, d.hour, d.min)
+    end
+
+    -- ระบบคำนวณปฏิทิน UTC สำรองหาก os.date โดนจำกัดโดย Executor
+    local totalSec = math.max(0, math.floor(ts))
+    local totalMin = math.floor(totalSec / 60)
+    local min = totalMin % 60
+    local totalHour = math.floor(totalMin / 60)
+    local hour = totalHour % 24
+    local totalDays = math.floor(totalHour / 24)
+
+    local y = 1970
+    while true do
+        local isLeap = (y % 4 == 0 and y % 100 ~= 0) or (y % 400 == 0)
+        local daysInYear = isLeap and 366 or 365
+        if totalDays >= daysInYear then
+            totalDays = totalDays - daysInYear
+            y = y + 1
+        else
+            break
+        end
+    end
+    local isLeap = (y % 4 == 0 and y % 100 ~= 0) or (y % 400 == 0)
+    local monthDays = {31, isLeap and 29 or 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+    local m = 1
+    for mi = 1, 12 do
+        if totalDays >= monthDays[mi] then
+            totalDays = totalDays - monthDays[mi]
+            m = m + 1
+        else
+            break
+        end
+    end
+    local day = totalDays + 1
+    return string.format("%04d-%02d-%02d-%02d:%02d", y, m, day, hour, min)
+end
+
+-- แปลงวันหมดอายุ YYYY-MM-DD-HH:MM กลับเป็น Unix Timestamp (ครอบคลุมถึงวินาทีที่ :59 ของนาทีนั้น)
+local function parseDateToTimestamp(dateStr)
+    if not dateStr or dateStr == "" or string.upper(dateStr) == "LIFETIME" then return nil end
+    local y, m, d, h, min = string.match(dateStr, "^(%d%d%d%d)%-(%d%d)%-(%d%d)[%-%s](%d%d):(%d%d)")
+    if not (y and m and d and h and min) then return nil end
+    y, m, d, h, min = tonumber(y), tonumber(m), tonumber(d), tonumber(h), tonumber(min)
+    if not (y and m and d and h and min) then return nil end
+
+    local totalDays = 0
+    for yr = 1970, y - 1 do
+        local isLeap = (yr % 4 == 0 and yr % 100 ~= 0) or (yr % 400 == 0)
+        totalDays = totalDays + (isLeap and 366 or 365)
+    end
+    local isLeap = (y % 4 == 0 and y % 100 ~= 0) or (y % 400 == 0)
+    local monthDays = {31, isLeap and 29 or 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+    for mi = 1, m - 1 do
+        totalDays = totalDays + monthDays[mi]
+    end
+    totalDays = totalDays + (d - 1)
+
+    -- เพิ่ม +59 วินาที เพื่อให้มีอายุใช้งานจนสิ้นสุดนาทีนั้นอย่างเต็มที่
+    return (totalDays * 86400) + (h * 3600) + (min * 60) + 59
+end
+
+-- ดึงระยะเวลาเป็นวินาทีตามแท็ก (1M = 60วิ, 1D = 86400วิ, 7D = 604800วิ, 30D = 2592000วิ, LIFETIME = -1)
+local function getTagDuration(tag)
+    if not tag or tag == "" then return -1 end
+    tag = string.upper(string.gsub(tag, "%s+", ""))
+    if tag == "LIFETIME" or tag == "PERM" or tag == "PERMANENT" then
+        return -1
+    elseif tag == "1M" then
+        return 60
+    elseif tag == "1D" then
+        return 86400
+    elseif tag == "7D" then
+        return 604800
+    elseif tag == "30D" then
+        return 2592000
+    end
+
+    local num, unit = string.match(tag, "^(%d+)([MDHS])$")
+    if num and unit then
+        num = tonumber(num)
+        if unit == "M" then return num * 60 end
+        if unit == "H" then return num * 3600 end
+        if unit == "D" then return num * 86400 end
+        if unit == "S" then return num end
+    end
+    return -1
+end
+
+-- ฟอร์แมตเวลาที่เหลือเป็นข้อความภาษาไทย (วัน, ชั่วโมง, นาที, วินาที)
+local function formatTimeRemaining(seconds)
+    if not seconds or seconds < 0 then
+        return "หมดอายุแล้ว"
+    end
+    if seconds == math.huge or seconds >= 10^9 then
+        return "ถาวร (LIFETIME)"
+    end
+
+    local days = math.floor(seconds / 86400)
+    local hours = math.floor((seconds % 86400) / 3600)
+    local mins = math.floor((seconds % 3600) / 60)
+    local secs = math.floor(seconds % 60)
+
+    local parts = {}
+    if days > 0 then
+        table.insert(parts, string.format("%d วัน", days))
+    end
+    if hours > 0 or days > 0 then
+        table.insert(parts, string.format("%d ชั่วโมง", hours))
+    end
+    if mins > 0 or hours > 0 or days > 0 then
+        table.insert(parts, string.format("%d นาที", mins))
+    end
+    table.insert(parts, string.format("%d วินาที", secs))
+
+    if #parts == 0 then
+        return "0 วินาที"
+    end
+    return table.concat(parts, " ")
+end
+
+-- ฟอร์แมตเวลาแบบย่อสำหรับ Watermark HUD
+local function formatTimeCompact(seconds)
+    if not seconds or seconds < 0 then return "หมดอายุแล้ว" end
+    if seconds == math.huge or seconds >= 10^9 then return "♾️ ถาวร (Lifetime)" end
+    local days = math.floor(seconds / 86400)
+    local hours = math.floor((seconds % 86400) / 3600)
+    local mins = math.floor((seconds % 3600) / 60)
+    local secs = math.floor(seconds % 60)
+    if days > 0 then
+        return string.format("%d วัน %02d:%02d:%02d", days, hours, mins, secs)
+    else
+        return string.format("%02d:%02d:%02d", hours, mins, secs)
+    end
+end
+
+-- ตรวจสอบและแยกข้อมูลบรรทัดคีย์บน GitHub (Unbound, Bound-Timed, Bound-Lifetime, Legacy)
+local function parseKeyLine(rawLine)
+    local line = string.gsub(rawLine or "", "^%s*(.-)%s*$", "%1")
+    if line == "" or string.sub(line, 1, 1) == "#" or string.sub(line, 1, 2) == "--" then
+        return nil
+    end
+
+    -- 1. คีย์ที่ยังไม่ผูกเครื่อง มีแท็กเวลา (KEY::TAG เช่น PS-KEY-xxxx::1M, PS-KEY-xxxx::LIFETIME)
+    local k1, tag1 = string.match(line, "^([^:]+)::([^:]+)$")
+    if k1 and tag1 then
+        return {
+            status = "unbound",
+            key = string.gsub(k1, "^%s*(.-)%s*$", "%1"),
+            tag = string.gsub(tag1, "^%s*(.-)%s*$", "%1"),
+            isLifetime = (string.upper(tag1) == "LIFETIME"),
+            raw = line,
+        }
+    end
+
+    -- 2. คีย์ที่ผูก HWID และมีวันเวลาหมดอายุ (KEY:HWID:YYYY-MM-DD-HH:MM)
+    local k2, h2, exp2 = string.match(line, "^([^:]+):([^:]+):(%d%d%d%d%-%d%d%-%d%d[%-%s]%d%d:%d%d.*)$")
+    if k2 and h2 and exp2 then
+        return {
+            status = "bound",
+            key = string.gsub(k2, "^%s*(.-)%s*$", "%1"),
+            hwid = string.gsub(h2, "^%s*(.-)%s*$", "%1"),
+            expireStr = exp2,
+            isLifetime = false,
+            raw = line,
+        }
+    end
+
+    -- 3. คีย์ที่ผูก HWID แบบถาวร (KEY:HWID:LIFETIME)
+    local k3, h3, tag3 = string.match(line, "^([^:]+):([^:]+):([%a%d]+)$")
+    if k3 and h3 and tag3 and string.upper(tag3) == "LIFETIME" then
+        return {
+            status = "bound",
+            key = string.gsub(k3, "^%s*(.-)%s*$", "%1"),
+            hwid = string.gsub(h3, "^%s*(.-)%s*$", "%1"),
+            expireStr = "LIFETIME",
+            isLifetime = true,
+            raw = line,
+        }
+    end
+
+    -- 4. คีย์เดิมที่ผูก HWID แบบไม่มีวันหมดอายุ (KEY:HWID -> ถาวร)
+    local k4, h4 = string.match(line, "^([^:]+):([^:]+)$")
+    if k4 and h4 then
+        return {
+            status = "bound",
+            key = string.gsub(k4, "^%s*(.-)%s*$", "%1"),
+            hwid = string.gsub(h4, "^%s*(.-)%s*$", "%1"),
+            expireStr = "LIFETIME",
+            isLifetime = true,
+            raw = line,
+        }
+    end
+
+    -- 5. คีย์ว่างเปล่าแบบไม่มีแท็ก (KEY -> ถาวร)
+    if not string.find(line, ":") then
+        return {
+            status = "unbound",
+            key = line,
+            tag = "LIFETIME",
+            isLifetime = true,
+            raw = line,
+        }
+    end
+
+    return nil
+end
+
 -- ══════════════════ HWID & EXECUTOR HELPERS ══════════════════
 function KeySystem.GetHWID()
     local hwid = nil
@@ -307,12 +541,14 @@ local function fetchUrl(url)
 end
 
 -- ══════════════════ LOCAL SAVE / CACHE ══════════════════
-local function saveKeyLocal(fileName, key, hwid)
+local function saveKeyLocal(fileName, key, hwid, expireTimestamp, expireStr)
     if writefile then
         pcall(function()
             writefile(fileName, HttpService:JSONEncode({
                 key = key,
                 hwid = hwid,
+                expireTimestamp = expireTimestamp,
+                expireStr = expireStr,
                 savedAt = os.time()
             }))
         end)
@@ -351,8 +587,15 @@ end
 function KeySystem.Logout()
     KeySystem.DeleteKeyLocal(KeySystem.Config.SaveFileName)
     KeySystem.CurrentKey = nil
+    KeySystem.ExpireTime = nil
+    KeySystem.ExpireStr = nil
+    KeySystem.IsLifetime = false
     KeySystem.Verified = false
     KeySystem._WatchdogRunning = false
+    if KeySystem._WatermarkGui then
+        pcall(function() KeySystem._WatermarkGui:Destroy() end)
+        KeySystem._WatermarkGui = nil
+    end
 end
 
 -- ══════════════════ ONLINE VERIFICATION & HWID BINDING ══════════════════
@@ -363,6 +606,11 @@ function KeySystem.VerifyOnline(inputKey, cfg)
         return false, "กรุณากรอกคีย์ก่อนกดยืนยัน"
     end
 
+    -- สกัดรหัสคีย์หลัก (รองรับกรณีผู้ใช้ก็อปปี้มาทั้งบรรทัดที่มี ::TAG หรือ :HWID)
+    local cleanKey = string.gsub(inputKey, "::.*$", "")
+    cleanKey = string.gsub(cleanKey, ":.*$", "")
+    cleanKey = string.gsub(cleanKey, "^%s*(.-)%s*$", "%1")
+
     local myHwid = KeySystem.GetHWID()
     local fileContent = ""
     local fileSha = nil
@@ -370,7 +618,7 @@ function KeySystem.VerifyOnline(inputKey, cfg)
     local hasToken = (typeof(cfg.GitHubToken) == "string" and cfg.GitHubToken ~= "")
     local req = (syn and syn.request) or request or http_request or (http and http.request)
 
-    -- 1. ตรวจสอบผ่าน GitHub REST API หากมี Token (ดึง SHA สำหรับ Auto-Commit)
+    -- 1. ตรวจสอบผ่าน GitHub REST API หากมี Token (เพื่อดึง SHA ล่าสุดสำหรับ Auto-Commit)
     if hasToken and req and cfg.GitHubOwner and cfg.GitHubRepo and cfg.GitHubPath then
         local apiUrl = string.format("https://api.github.com/repos/%s/%s/contents/%s", cfg.GitHubOwner, cfg.GitHubRepo, cfg.GitHubPath)
         local ok, resp = pcall(function()
@@ -393,7 +641,7 @@ function KeySystem.VerifyOnline(inputKey, cfg)
         end
     end
 
-    -- 2. หากไม่มี Token หรือ REST API ดึงไม่สำเร็จ ให้ดึงผ่าน Raw URL โดยตรง (พร้อมพารามิเตอร์ป้องกันแคช)
+    -- 2. หากไม่มี Token หรือ REST API ดึงไม่สำเร็จ ให้ดึงผ่าน Raw URL โดยตรง (พร้อม Anti-Cache timestamp)
     if fileContent == "" and cfg.KeysUrl and cfg.KeysUrl ~= "" then
         local rawUrl = cfg.KeysUrl .. "?t=" .. tostring(os.time())
         fileContent = fetchUrl(rawUrl) or fetchUrl(cfg.KeysUrl) or ""
@@ -403,10 +651,9 @@ function KeySystem.VerifyOnline(inputKey, cfg)
         return false, "ไม่สามารถเชื่อมต่อ GitHub ได้ กรุณาตรวจสอบอินเทอร์เน็ต"
     end
 
-    -- 3. แยกบรรทัดและประมวลผลคีย์
+    -- 3. แยกบรรทัดและประมวลผลค้นหาคีย์
     local lines = {}
-    local keyFound = false
-    local keyNeedsBind = false
+    local matchedParsed = nil
     local targetLineIndex = -1
 
     for line in string.gmatch(fileContent, "[^\r\n]+") do
@@ -414,51 +661,84 @@ function KeySystem.VerifyOnline(inputKey, cfg)
     end
 
     for idx, line in ipairs(lines) do
-        local trimmed = string.gsub(line, "^%s*(.-)%s*$", "%1")
-        if trimmed ~= "" and not string.find(trimmed, "^#") and not string.find(trimmed, "^%-%-") then
-            local colonIdx = string.find(trimmed, ":")
-            if colonIdx then
-                -- คีย์ถูกผูก HWID ไว้แล้ว (KEY:HWID)
-                local k = string.gsub(string.sub(trimmed, 1, colonIdx - 1), "^%s*(.-)%s*$", "%1")
-                local h = string.gsub(string.sub(trimmed, colonIdx + 1), "^%s*(.-)%s*$", "%1")
-                if k == inputKey then
-                    keyFound = true
-                    if compareHWID(h, myHwid) then
-                        -- HWID ตรงกับเครื่องนี้ 100%
-                        saveKeyLocal(cfg.SaveFileName, inputKey, myHwid)
-                        KeySystem.CurrentKey = inputKey
-                        KeySystem.Verified = true
-                        return true, "คีย์ถูกต้อง! ยินดีต้อนรับเข้าสู่ระบบ"
-                    else
-                        -- มีเครื่องอื่นผูกคีย์นี้ไปแล้ว
-                        return false, "คีย์นี้ถูกใช้งานและล็อคกับเครื่องอื่นไปแล้ว! (HWID Locked)"
-                    end
-                end
-            else
-                -- คีย์ยังไม่ได้ผูก HWID (คีย์ว่าง)
-                if trimmed == inputKey then
-                    keyFound = true
-                    keyNeedsBind = true
-                    targetLineIndex = idx
-                end
+        local parsed = parseKeyLine(line)
+        if parsed then
+            if parsed.key == cleanKey or parsed.key == inputKey then
+                matchedParsed = parsed
+                targetLineIndex = idx
+                break
             end
         end
     end
 
-    if not keyFound then
+    if not matchedParsed then
         return false, "คีย์ไม่ถูกต้อง หรือไม่มีอยู่ในระบบ GitHub"
     end
 
-    -- 4. จัดการคีย์ที่ยังไม่ได้ผูก HWID
-    if keyNeedsBind then
-        -- หากเป็น true: คีย์บน GitHub จะต้องมี :HWID เท่านั้นถึงจะเข้าได้ (ป้องกันคนเอาคีย์ว่างไปแชร์กัน)
+    -- 4. จัดการคีย์ที่ถูกผูก HWID ไว้แล้ว (BOUND KEY)
+    if matchedParsed.status == "bound" then
+        -- ตรวจสอบ HWID ว่าตรงกับเครื่องนี้หรือไม่
+        if not compareHWID(matchedParsed.hwid, myHwid) then
+            return false, "คีย์นี้ถูกใช้งานและล็อคกับเครื่องอื่นไปแล้ว! (HWID Locked)"
+        end
+
+        -- กรณีคีย์ถาวร (LIFETIME)
+        if matchedParsed.isLifetime then
+            KeySystem.CurrentKey = matchedParsed.key
+            KeySystem.ExpireTime = nil
+            KeySystem.ExpireStr = "LIFETIME"
+            KeySystem.IsLifetime = true
+            KeySystem.Verified = true
+            saveKeyLocal(cfg.SaveFileName, matchedParsed.key, myHwid, nil, "LIFETIME")
+            return true, "คีย์ถูกต้อง! สิทธิ์ใช้งานแบบถาวร (Lifetime)", math.huge
+        else
+            -- กรณีคีย์มีกำหนดเวลาหมดอายุ
+            local expTs = parseDateToTimestamp(matchedParsed.expireStr)
+            local now = getServerNow()
+
+            if not expTs or now >= expTs then
+                -- คีย์หมดอายุแล้ว! ลบเซฟทิ้งทันที
+                KeySystem.DeleteKeyLocal(cfg.SaveFileName)
+                KeySystem.Verified = false
+                return false, "คีย์ของคุณหมดอายุการใช้งานแล้ว! (หมดอายุเมื่อ: " .. tostring(matchedParsed.expireStr) .. ")"
+            else
+                -- คีย์ยังไม่หมดอายุ ใช้งานได้ปกติ
+                local remaining = expTs - now
+                KeySystem.CurrentKey = matchedParsed.key
+                KeySystem.ExpireTime = expTs
+                KeySystem.ExpireStr = matchedParsed.expireStr
+                KeySystem.IsLifetime = false
+                KeySystem.Verified = true
+                saveKeyLocal(cfg.SaveFileName, matchedParsed.key, myHwid, expTs, matchedParsed.expireStr)
+                return true, "คีย์ถูกต้อง! ยินดีต้อนรับเข้าสู่ระบบ (เหลือเวลา: " .. formatTimeRemaining(remaining) .. ")", remaining
+            end
+        end
+    end
+
+    -- 5. จัดการคีย์ที่ยังไม่ได้ผูก HWID (FIRST-USE ACTIVATION)
+    if matchedParsed.status == "unbound" then
         if cfg.StrictHwidOnly then
             return false, "คีย์นี้ยังไม่ได้รับการล็อคเครื่อง กรุณาส่ง HWID ให้แอดมินเปิดใช้งาน"
         end
 
-        -- กรณีมี GitHub Token: Commit ผูก HWID ขึ้น GitHub ทันที!
+        local duration = getTagDuration(matchedParsed.tag)
+        local now = getServerNow()
+        local expireTimestamp = nil
+        local expireDateStr = nil
+        local newLine = nil
+
+        if duration and duration > 0 then
+            expireTimestamp = now + duration
+            expireDateStr = formatTimestamp(expireTimestamp)
+            newLine = matchedParsed.key .. ":" .. myHwid .. ":" .. expireDateStr
+        else
+            expireDateStr = "LIFETIME"
+            newLine = matchedParsed.key .. ":" .. myHwid .. ":LIFETIME"
+        end
+
+        -- กรณีมี GitHub Token: Auto-Commit ผูก HWID และเวลาหมดอายุขึ้น GitHub ทันที!
         if hasToken and fileSha and req and cfg.GitHubOwner and cfg.GitHubRepo and cfg.GitHubPath then
-            lines[targetLineIndex] = inputKey .. ":" .. myHwid
+            lines[targetLineIndex] = newLine
             local newContent = table.concat(lines, "\n")
             local newBase64 = base64Encode(newContent)
 
@@ -474,7 +754,7 @@ function KeySystem.VerifyOnline(inputKey, cfg)
                         ["Content-Type"] = "application/json"
                     },
                     Body = HttpService:JSONEncode({
-                        message = "Auto-Lock Key " .. inputKey .. " to HWID " .. myHwid,
+                        message = "Auto-Lock Key " .. matchedParsed.key .. " (" .. (expireDateStr or "LIFETIME") .. ")",
                         content = newBase64,
                         sha = fileSha
                     })
@@ -482,23 +762,138 @@ function KeySystem.VerifyOnline(inputKey, cfg)
             end)
 
             if putOk and putResp and (putResp.StatusCode == 200 or putResp.StatusCode == 201) then
-                saveKeyLocal(cfg.SaveFileName, inputKey, myHwid)
-                KeySystem.CurrentKey = inputKey
+                KeySystem.CurrentKey = matchedParsed.key
+                KeySystem.ExpireTime = expireTimestamp
+                KeySystem.ExpireStr = expireDateStr
+                KeySystem.IsLifetime = (duration == nil or duration <= 0)
                 KeySystem.Verified = true
-                return true, "คีย์ถูกต้อง! และได้บันทึกล็อคเครื่องขึ้น GitHub เรียบร้อยแล้ว"
+                saveKeyLocal(cfg.SaveFileName, matchedParsed.key, myHwid, expireTimestamp, expireDateStr)
+
+                local successMsg = KeySystem.IsLifetime
+                    and "คีย์ถูกต้อง! สิทธิ์ใช้งานถาวร (บันทึกล็อคเครื่องขึ้น GitHub เรียบร้อย)"
+                    or ("คีย์ถูกต้อง! เปิดใช้งานสำเร็จ (หมดอายุ: " .. expireDateStr .. ")")
+                return true, successMsg, (duration and duration > 0 and duration or math.huge)
             else
                 warn("[KeySystem] เกิดข้อผิดพลาดในการ Auto-Commit ขึ้น GitHub:", putResp and putResp.Body)
             end
         end
 
-        -- บันทึกลงในเครื่อง
-        saveKeyLocal(cfg.SaveFileName, inputKey, myHwid)
-        KeySystem.CurrentKey = inputKey
+        -- บันทึกลงในเครื่อง (กรณีไม่มี Token หรือ Commit เกิดปัญหา)
+        KeySystem.CurrentKey = matchedParsed.key
+        KeySystem.ExpireTime = expireTimestamp
+        KeySystem.ExpireStr = expireDateStr
+        KeySystem.IsLifetime = (duration == nil or duration <= 0)
         KeySystem.Verified = true
-        return true, "คีย์ถูกต้อง! ยินดีต้อนรับเข้าสู่ระบบ"
+        saveKeyLocal(cfg.SaveFileName, matchedParsed.key, myHwid, expireTimestamp, expireDateStr)
+
+        local successMsg = KeySystem.IsLifetime
+            and "คีย์ถูกต้อง! ยินดีต้อนรับเข้าสู่ระบบ (สิทธิ์ถาวร)"
+            or ("คีย์ถูกต้อง! ยินดีต้อนรับเข้าสู่ระบบ (หมดอายุ: " .. (expireDateStr or "N/A") .. ")")
+        return true, successMsg, (duration and duration > 0 and duration or math.huge)
     end
 
     return false, "เกิดข้อผิดพลาดในการตรวจสอบคีย์"
+end
+
+-- ══════════════════ IN-GAME WATERMARK HUD ══════════════════
+function KeySystem.CreateWatermark(cfg)
+    cfg = cfg or KeySystem.Config
+    if KeySystem._WatermarkGui then
+        pcall(function() KeySystem._WatermarkGui:Destroy() end)
+        KeySystem._WatermarkGui = nil
+    end
+
+    local GuiParent = getSafeGuiParent()
+    local wmGui = Create("ScreenGui", {
+        Name = "Warz_TimeWatermark",
+        ResetOnSpawn = false,
+        DisplayOrder = 999,
+        Parent = GuiParent,
+    })
+    KeySystem._WatermarkGui = wmGui
+
+    local wmFrame = Create("Frame", {
+        Name = "WatermarkFrame",
+        Size = UDim2.new(0, 275, 0, 32),
+        Position = UDim2.new(1, -285, 0, 10),
+        BackgroundColor3 = Color3.fromRGB(18, 18, 24),
+        BackgroundTransparency = 0.2,
+        BorderSizePixel = 0,
+        Parent = wmGui,
+    })
+    RoundCorner(wmFrame, 8)
+    AddStroke(wmFrame, KeyTheme.Border, 1)
+
+    local dot = Create("Frame", {
+        Size = UDim2.new(0, 8, 0, 8),
+        Position = UDim2.new(0, 10, 0.5, -4),
+        BackgroundColor3 = KeyTheme.Green,
+        BorderSizePixel = 0,
+        Parent = wmFrame,
+    })
+    RoundCorner(dot, 4)
+
+    local wmLabel = Create("TextLabel", {
+        Text = "Warz | กำลังโหลดเวลา...",
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextColor3 = KeyTheme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 26, 0, 0),
+        Size = UDim2.new(1, -30, 1, 0),
+        Parent = wmFrame,
+    })
+
+    -- Draggable Badge
+    local dragging, dragStart, startPos = false, nil, nil
+    wmFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = wmFrame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    wmFrame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging and dragStart then
+                local delta = input.Position - dragStart
+                wmFrame.Position = UDim2.new(
+                    startPos.X.Scale, startPos.X.Offset + delta.X,
+                    startPos.Y.Scale, startPos.Y.Offset + delta.Y
+                )
+            end
+        end
+    end)
+
+    -- Live Countdown Updater (อัปเดตวินาทีแบบ Real-Time)
+    task.spawn(function()
+        while wmGui and wmGui.Parent and KeySystem.Verified do
+            if KeySystem.ExpireTime and KeySystem.ExpireTime > 0 and not KeySystem.IsLifetime then
+                local now = getServerNow()
+                local diff = KeySystem.ExpireTime - now
+                if diff <= 0 then
+                    wmLabel.Text = "Warz | ⚠️ คีย์หมดอายุแล้ว"
+                    wmLabel.TextColor3 = KeyTheme.Red
+                    dot.BackgroundColor3 = KeyTheme.Red
+                else
+                    wmLabel.Text = "Warz | ⏳ " .. formatTimeCompact(diff)
+                    wmLabel.TextColor3 = KeyTheme.Green
+                    dot.BackgroundColor3 = KeyTheme.Green
+                end
+            elseif KeySystem.IsLifetime then
+                wmLabel.Text = "Warz | ♾️ ถาวร (Lifetime)"
+                wmLabel.TextColor3 = KeyTheme.Accent
+                dot.BackgroundColor3 = KeyTheme.Accent
+            end
+            task.wait(1)
+        end
+    end)
 end
 
 -- ══════════════════ KEY SYSTEM UI ══════════════════
@@ -523,8 +918,8 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
 
     local KeyWindow = Create("Frame", {
         Name = "KeyWindow",
-        Size = UDim2.new(0, 390, 0, 450),
-        Position = UDim2.new(0.5, -195, 0.5, -225),
+        Size = UDim2.new(0, 400, 0, 485),
+        Position = UDim2.new(0.5, -200, 0.5, -242),
         BackgroundColor3 = KeyTheme.BG,
         BorderSizePixel = 0,
         ClipsDescendants = true,
@@ -613,7 +1008,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         TextColor3 = KeyTheme.White,
         TextXAlignment = Enum.TextXAlignment.Center,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 4),
+        Position = UDim2.new(0, 0, 0, 2),
         Size = UDim2.new(1, 0, 0, 20),
         Parent = KeyBody,
     })
@@ -625,15 +1020,15 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         TextColor3 = KeyTheme.TextMuted,
         TextXAlignment = Enum.TextXAlignment.Center,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 24),
+        Position = UDim2.new(0, 0, 0, 22),
         Size = UDim2.new(1, 0, 0, 16),
         Parent = KeyBody,
     })
 
-    -- กล่องใส่คีย์ (TextBox)
+    -- 1. กล่องใส่คีย์ (TextBox)
     local KeyInputCard = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 44),
-        Position = UDim2.new(0, 0, 0, 48),
+        Size = UDim2.new(1, 0, 0, 42),
+        Position = UDim2.new(0, 0, 0, 44),
         BackgroundColor3 = KeyTheme.Card,
         BorderSizePixel = 0,
         Parent = KeyBody,
@@ -642,7 +1037,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     AddStroke(KeyInputCard, KeyTheme.Border, 1)
 
     local KeyInput = Create("TextBox", {
-        PlaceholderText = "กรอกคีย์ของคุณที่นี่...",
+        PlaceholderText = "กรอกคีย์ของคุณที่นี่ (เช่น PS-KEY-xxxx)...",
         PlaceholderColor3 = KeyTheme.TextMuted,
         Text = "",
         Font = Enum.Font.GothamBold,
@@ -655,10 +1050,45 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         Parent = KeyInputCard,
     })
 
-    -- การ์ดแสดง HWID ของเครื่อง
+    -- 2. การ์ดแสดงเวลาที่เหลือแบบ Real-Time (Key Countdown Card)
+    local TimeCard = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 52),
+        Position = UDim2.new(0, 0, 0, 94),
+        BackgroundColor3 = KeyTheme.Card,
+        BorderSizePixel = 0,
+        Parent = KeyBody,
+    })
+    RoundCorner(TimeCard, 8)
+    AddStroke(TimeCard, KeyTheme.Border, 1)
+
+    local TimeHeaderLabel = Create("TextLabel", {
+        Text = "⏱️ สถานะอายุการใช้งาน (Remaining Time):",
+        Font = Enum.Font.GothamBold,
+        TextSize = 11,
+        TextColor3 = KeyTheme.TextMuted,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 6),
+        Size = UDim2.new(1, -24, 0, 16),
+        Parent = TimeCard,
+    })
+
+    local TimeCountdownLabel = Create("TextLabel", {
+        Text = "รอการตรวจสอบคีย์",
+        Font = Enum.Font.GothamBold,
+        TextSize = 12,
+        TextColor3 = KeyTheme.Accent,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 24),
+        Size = UDim2.new(1, -24, 0, 20),
+        Parent = TimeCard,
+    })
+
+    -- 3. การ์ดแสดง HWID ของเครื่อง
     local HwidCard = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 80),
-        Position = UDim2.new(0, 0, 0, 102),
+        Size = UDim2.new(1, 0, 0, 74),
+        Position = UDim2.new(0, 0, 0, 154),
         BackgroundColor3 = KeyTheme.Card,
         BorderSizePixel = 0,
         Parent = KeyBody,
@@ -673,7 +1103,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         TextColor3 = KeyTheme.TextMuted,
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 8),
+        Position = UDim2.new(0, 12, 0, 6),
         Size = UDim2.new(1, -24, 0, 16),
         Parent = HwidCard,
     })
@@ -688,7 +1118,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         TextColor3 = KeyTheme.Accent,
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 26),
+        Position = UDim2.new(0, 12, 0, 24),
         Size = UDim2.new(1, -125, 0, 20),
         Parent = HwidCard,
     })
@@ -701,7 +1131,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         TextColor3 = KeyTheme.White,
         BackgroundColor3 = KeyTheme.CardHover,
         Size = UDim2.new(0, 105, 0, 26),
-        Position = UDim2.new(1, -117, 0, 23),
+        Position = UDim2.new(1, -117, 0, 21),
         AutoButtonColor = false,
         Parent = HwidCard,
     })
@@ -717,18 +1147,18 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
     end)
 
     Create("TextLabel", {
-        Text = "หากคีย์ติดล็อคเครื่อง ให้ส่ง HWID นี้ให้แอดมินปลดล็อค",
+        Text = "หากคีย์ติดล็อคเครื่อง ให้ส่ง HWID นี้ให้แอดมินเพื่อรีเซ็ตหรือปลดล็อค",
         Font = Enum.Font.Gotham,
         TextSize = 10,
         TextColor3 = Color3.fromRGB(130, 130, 145),
         TextXAlignment = Enum.TextXAlignment.Left,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 12, 0, 54),
+        Position = UDim2.new(0, 12, 0, 48),
         Size = UDim2.new(1, -24, 0, 16),
         Parent = HwidCard,
     })
 
-    -- ข้อความผลการตรวจสอบ
+    -- 4. ข้อความผลการตรวจสอบ
     local KeyStatusMsg = Create("TextLabel", {
         Text = "พร้อมตรวจสอบคีย์",
         Font = Enum.Font.Gotham,
@@ -736,12 +1166,12 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         TextColor3 = KeyTheme.TextMuted,
         TextXAlignment = Enum.TextXAlignment.Center,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 190),
+        Position = UDim2.new(0, 0, 0, 236),
         Size = UDim2.new(1, 0, 0, 22),
         Parent = KeyBody,
     })
 
-    -- ปุ่มยืนยันคีย์ (SUBMIT KEY)
+    -- 5. ปุ่มยืนยันคีย์ (SUBMIT KEY)
     local SubmitBtn = Create("TextButton", {
         Text = "✓  ยืนยันคีย์ (SUBMIT KEY)",
         Font = Enum.Font.GothamBold,
@@ -749,7 +1179,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         TextColor3 = KeyTheme.White,
         BackgroundColor3 = KeyTheme.Green,
         Size = UDim2.new(1, 0, 0, 42),
-        Position = UDim2.new(0, 0, 0, 220),
+        Position = UDim2.new(0, 0, 0, 264),
         AutoButtonColor = false,
         Parent = KeyBody,
     })
@@ -773,7 +1203,7 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         KeyDot.BackgroundColor3 = KeyTheme.Yellow
 
         task.spawn(function()
-            local success, msg = KeySystem.VerifyOnline(input, cfg)
+            local success, msg, remaining = KeySystem.VerifyOnline(input, cfg)
             isChecking = false
 
             if success then
@@ -784,10 +1214,13 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
                 SubmitBtn.BackgroundColor3 = KeyTheme.Green
 
                 pcall(function()
+                    local noteText = KeySystem.IsLifetime
+                        and "ยืนยันคีย์สำเร็จ! สิทธิ์การใช้งานถาวร"
+                        or ("ยืนยันคีย์สำเร็จ! เหลือเวลา: " .. formatTimeRemaining(remaining or 0))
                     StarterGui:SetCore("SendNotification", {
                         Title = cfg.HubName or "Key System",
-                        Text = "ยืนยันคีย์สำเร็จ! ยินดีต้อนรับ",
-                        Duration = 3
+                        Text = noteText,
+                        Duration = 4
                     })
                 end)
 
@@ -807,14 +1240,14 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         end)
     end)
 
-    -- ปุ่มวาง / ล้างข้อความ / รับคีย์
+    -- 6. ปุ่มวาง / ล้างข้อความ / รับคีย์
     local PasteRow = Create("Frame", {
         Size = UDim2.new(1, 0, 0, 28),
-        Position = UDim2.new(0, 0, 0, 272),
+        Position = UDim2.new(0, 0, 0, 314),
         BackgroundTransparency = 1,
         Parent = KeyBody,
     })
-    local rowLayout = Create("UIListLayout", {
+    Create("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         Padding = UDim.new(0, 6),
         Parent = PasteRow,
@@ -884,18 +1317,55 @@ function KeySystem.OpenUI(cfg, onSuccessCallback)
         end)
     end
 
-    -- Footer
+    -- 7. Footer
     Create("TextLabel", {
-        Text = (cfg.HubName or "Warz By Unique HUB") .. " • GitHub Verified • HWID Locked",
+        Text = (cfg.HubName or "Warz By Unique HUB") .. " • GitHub REST Verified • HWID Locked",
         Font = Enum.Font.Gotham,
         TextSize = 10,
         TextColor3 = Color3.fromRGB(110, 110, 125),
         TextXAlignment = Enum.TextXAlignment.Center,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 316),
+        Position = UDim2.new(0, 0, 0, 355),
         Size = UDim2.new(1, 0, 0, 16),
         Parent = KeyBody,
     })
+
+    -- ดึงข้อมูลคีย์เซฟเดิมมาแสดงเบื้องต้น (ถ้ามี)
+    local saved = readKeyLocal(cfg.SaveFileName)
+    if saved and saved.key then
+        KeyInput.Text = saved.key
+        if saved.expireTimestamp and saved.expireTimestamp > 0 then
+            KeySystem.ExpireTime = saved.expireTimestamp
+            KeySystem.ExpireStr = saved.expireStr
+            KeySystem.IsLifetime = false
+        elseif saved.expireStr == "LIFETIME" then
+            KeySystem.IsLifetime = true
+        end
+    end
+
+    -- ระบบอัปเดตเวลานับถอยหลังแบบ Real-time บน UI
+    task.spawn(function()
+        while KeyScreen and KeyScreen.Parent do
+            if KeySystem.ExpireTime and KeySystem.ExpireTime > 0 and not KeySystem.IsLifetime then
+                local now = getServerNow()
+                local diff = KeySystem.ExpireTime - now
+                if diff <= 0 then
+                    TimeCountdownLabel.Text = "⚠️ คีย์หมดอายุแล้ว"
+                    TimeCountdownLabel.TextColor3 = KeyTheme.Red
+                else
+                    TimeCountdownLabel.Text = "⏳ เหลือเวลา: " .. formatTimeRemaining(diff)
+                    TimeCountdownLabel.TextColor3 = KeyTheme.Green
+                end
+            elseif KeySystem.IsLifetime then
+                TimeCountdownLabel.Text = "♾️ สิทธิ์การใช้งาน: ถาวร (LIFETIME)"
+                TimeCountdownLabel.TextColor3 = KeyTheme.Accent
+            else
+                TimeCountdownLabel.Text = "⏱️ รอการตรวจสอบคีย์ (เริ่มนับเวลาเมื่อใช้ครั้งแรก)"
+                TimeCountdownLabel.TextColor3 = KeyTheme.TextMuted
+            end
+            task.wait(1)
+        end
+    end)
 
     -- Draggable Header
     local dragKey = false
@@ -937,46 +1407,77 @@ function KeySystem.StartWatchdog(activeKey, cfg)
     KeySystem._WatchdogRunning = true
 
     task.spawn(function()
-        local interval = cfg.WatchdogInterval or 300
+        local interval = cfg.WatchdogInterval or 10
+        local lastOnlineCheck = 0
+
         while KeySystem._WatchdogRunning and KeySystem.Verified do
-            task.wait(interval)
-            if not KeySystem.Verified then break end
+            -- 1. ตรวจสอบเวลาหมดอายุจริงแบบความถี่สูงทุกวินาที (High Precision Countdown)
+            local now = getServerNow()
+            if KeySystem.ExpireTime and KeySystem.ExpireTime > 0 and not KeySystem.IsLifetime then
+                if now >= KeySystem.ExpireTime then
+                    -- ⚠️ คีย์หมดอายุแล้ว!
+                    KeySystem.Verified = false
+                    KeySystem._WatchdogRunning = false
+                    KeySystem.DeleteKeyLocal(cfg.SaveFileName)
 
-            local ok, msg = KeySystem.VerifyOnline(activeKey, cfg)
-            if not ok then
-                -- คีย์ถูกเพิกถอน หรือถูกลบจาก GitHub ขณะเล่นอยู่!
-                KeySystem.Verified = false
-                KeySystem._WatchdogRunning = false
-                KeySystem.DeleteKeyLocal(cfg.SaveFileName)
+                    -- ตัดการทำงานและทำลาย Fluent UI ทันที
+                    pcall(function()
+                        if _G.WarzWindow and _G.WarzWindow.Destroy then _G.WarzWindow:Destroy() end
+                        if _G.WarzFluent and _G.WarzFluent.Destroy then
+                            _G.WarzFluent:Destroy()
+                        elseif _G.WarzFluent and _G.WarzFluent.GUI then
+                            _G.WarzFluent.GUI:Destroy()
+                        end
+                    end)
 
-                pcall(function()
-                    StarterGui:SetCore("SendNotification", {
-                        Title = cfg.HubName or "Key System",
-                        Text = "คีย์ของคุณถูกเพิกถอนหรือลบออกจาก GitHub แล้ว! กำลังปิดโปรแกรม...",
-                        Duration = 5
-                    })
-                end)
-
-                -- ปิด Fluent UI ถ้าเปิดอยู่
-                pcall(function()
-                    if _G.WarzWindow and _G.WarzWindow.Destroy then
-                        _G.WarzWindow:Destroy()
+                    -- ลบ Watermark HUD
+                    if KeySystem._WatermarkGui then
+                        pcall(function() KeySystem._WatermarkGui:Destroy() end)
+                        KeySystem._WatermarkGui = nil
                     end
-                    if _G.WarzFluent and _G.WarzFluent.Destroy then
-                        _G.WarzFluent:Destroy()
-                    elseif _G.WarzFluent and _G.WarzFluent.GUI then
-                        _G.WarzFluent.GUI:Destroy()
-                    end
-                end)
 
-                -- เด้ง UI ให้ใส่คีย์ใหม่
-                KeySystem.OpenUI(cfg, function()
-                    if _G.WarzStartFunction then
-                        task.spawn(_G.WarzStartFunction)
-                    end
-                end)
-                break
+                    -- แจ้งเตือนและเตะผู้เล่นออกจากเกมทันที
+                    pcall(function()
+                        LocalPlayer:Kick("\n[Warz By Unique HUB]\n⚠️ คีย์ของคุณหมดอายุการใช้งานแล้ว!\nกรุณาติดต่อแอดมินเพื่อขอรับหรือต่ออายุคีย์ใหม่")
+                    end)
+                    break
+                end
             end
+
+            -- 2. ตรวจสอบสถานะคีย์บน GitHub สดๆ ทุกๆ N วินาที (WatchdogInterval = 10 วินาที)
+            if (tick() - lastOnlineCheck) >= interval then
+                lastOnlineCheck = tick()
+
+                local ok, msg = KeySystem.VerifyOnline(activeKey, cfg)
+                if not ok then
+                    -- คีย์หมดอายุ หรือถูกเพิกถอน หรือถูกลบจาก GitHub ขณะเล่นอยู่!
+                    KeySystem.Verified = false
+                    KeySystem._WatchdogRunning = false
+                    KeySystem.DeleteKeyLocal(cfg.SaveFileName)
+
+                    pcall(function()
+                        if _G.WarzWindow and _G.WarzWindow.Destroy then _G.WarzWindow:Destroy() end
+                        if _G.WarzFluent and _G.WarzFluent.Destroy then
+                            _G.WarzFluent:Destroy()
+                        elseif _G.WarzFluent and _G.WarzFluent.GUI then
+                            _G.WarzFluent.GUI:Destroy()
+                        end
+                    end)
+
+                    if KeySystem._WatermarkGui then
+                        pcall(function() KeySystem._WatermarkGui:Destroy() end)
+                        KeySystem._WatermarkGui = nil
+                    end
+
+                    local kickMsg = "\n[Warz By Unique HUB]\n⚠️ คีย์ของคุณหมดอายุ หรือถูกเพิกถอนจากระบบ GitHub แล้ว!\n" .. tostring(msg)
+                    pcall(function()
+                        LocalPlayer:Kick(kickMsg)
+                    end)
+                    break
+                end
+            end
+
+            task.wait(1)
         end
     end)
 end
@@ -995,13 +1496,16 @@ function KeySystem.Start(customConfig, onSuccessCallback)
         local myHwid = KeySystem.GetHWID()
 
         if saved and saved.key and saved.hwid and compareHWID(saved.hwid, myHwid) then
-            -- [ข้อ 6] ตรวจสอบคีย์ใหม่ทุกรอบที่ใช้งานผ่าน GitHub Raw สดๆ
+            -- ตรวจสอบคีย์สดใหม่ผ่าน GitHub
             local ok, msg = KeySystem.VerifyOnline(saved.key, cfg)
             if ok then
                 pcall(function()
+                    local noteText = KeySystem.IsLifetime
+                        and "เข้าสู่ระบบอัตโนมัติสำเร็จ! สิทธิ์การใช้งานถาวร"
+                        or ("เข้าสู่ระบบอัตโนมัติสำเร็จ! เหลือเวลา: " .. formatTimeRemaining((KeySystem.ExpireTime or 0) - getServerNow()))
                     StarterGui:SetCore("SendNotification", {
                         Title = cfg.HubName or "Key System",
-                        Text = "เข้าสู่ระบบอัตโนมัติสำเร็จ! คีย์ผ่านการตรวจสอบ",
+                        Text = noteText,
                         Duration = 3
                     })
                 end)
@@ -1009,14 +1513,15 @@ function KeySystem.Start(customConfig, onSuccessCallback)
                     task.spawn(onSuccessCallback)
                 end
                 KeySystem.StartWatchdog(saved.key, cfg)
+                KeySystem.CreateWatermark(cfg)
                 return
             else
-                -- หากเช็คแล้วไม่พบคีย์ใน GitHub ให้ลบเซฟ และเด้ง UI ให้ใส่คีย์ใหม่ทันที!
+                -- หากคีย์หมดอายุ หรือไม่พบคีย์ใน GitHub ให้ลบไฟล์เซฟทิ้งอัตโนมัติ และเปิดหน้า UI ทันที!
                 KeySystem.DeleteKeyLocal(cfg.SaveFileName)
                 pcall(function()
                     StarterGui:SetCore("SendNotification", {
                         Title = cfg.HubName or "Key System",
-                        Text = "คีย์ที่บันทึกไว้ถูกลบหรือไม่ถูกต้องแล้ว กรุณากรอกคีย์ใหม่",
+                        Text = "คีย์ที่บันทึกไว้หมดอายุหรือไม่ถูกต้องแล้ว กรุณากรอกคีย์ใหม่",
                         Duration = 4
                     })
                 end)
@@ -1024,13 +1529,14 @@ function KeySystem.Start(customConfig, onSuccessCallback)
         end
     end
 
-    -- 2. หากยังไม่มีคีย์เซฟ หรือคีย์ใน GitHub โดนลบ ให้เปิด UI ใส่คีย์
+    -- 2. หากยังไม่มีคีย์เซฟ หรือคีย์หมดอายุ ให้เปิด UI ให้กรอกคีย์ใหม่
     KeySystem.OpenUI(cfg, function()
         if onSuccessCallback then
             task.spawn(onSuccessCallback)
         end
         if KeySystem.CurrentKey then
             KeySystem.StartWatchdog(KeySystem.CurrentKey, cfg)
+            KeySystem.CreateWatermark(cfg)
         end
     end)
 end
