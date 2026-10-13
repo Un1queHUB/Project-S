@@ -52,7 +52,7 @@ KeySystem.Config = {
         4. Permissions -> Repository permissions -> Contents: เลือก "Read and write"
         5. กด Generate แล้วนำ Token (เช่น github_pat_xxxx) มาวางในช่องด้านล่าง
     --]]
-    GitHubToken = "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",
+    GitHubToken = "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",
 
     -- หากเป็น true: คีย์บน GitHub จะต้องมี :HWID เท่านั้นถึงจะเข้าได้ (ป้องกันคนเอาคีย์ว่างไปแชร์กัน)
     -- หากเป็น false: อนุญาตให้คีย์ที่ยังไม่มี :HWID ถูกผูกกับเครื่องแรกที่นำไปใช้
