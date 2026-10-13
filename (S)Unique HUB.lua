@@ -56,7 +56,7 @@ KeySystem.Config = {
 
     -- หากเป็น true: คีย์บน GitHub จะต้องมี :HWID เท่านั้นถึงจะเข้าได้ (ป้องกันคนเอาคีย์ว่างไปแชร์กัน)
     -- หากเป็น false: อนุญาตให้คีย์ที่ยังไม่มี :HWID ถูกผูกกับเครื่องแรกที่นำไปใช้
-    StrictHwidOnly = true,
+    StrictHwidOnly = false,
 
     -- 3. ชื่อไฟล์เซฟคีย์ในเครื่องผู้ใช้ (ระบบจำคีย์ / Auto-Login)
     SaveFileName = "WarzUniqueHUB_SavedKey.json",
